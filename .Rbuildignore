@@ -1,3 +1,5 @@
 ^DEGGs\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^doc$
+^Meta$
