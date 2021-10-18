@@ -1,0 +1,46 @@
+Package: DEGGs
+Title: Differentially Expressed Gene-Gene pairs 
+Version: 0.0.0.9000
+Authors@R: 
+    c(person(given = "Elisabetta",
+           family = "Sciacca",
+           role = c("aut", "cre"),
+           email = "e.sciacca@qmul.ac.uk",
+           comment = c(ORCID = "0000-0001-7525-1558")),
+      person(given = "Gianmarco",
+           family = "Silluzio",
+           role = c("aut"),
+           email = "silluziogianmarco@gmail.com",
+           comment = c(ORCID = "")) )
+Description: What the package does (one paragraph).
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+biocViews:
+Suggests: 
+    AnnotationDbi,
+    knitr,
+    org.Hs.eg.db,
+    rmarkdown
+Imports:
+   dplyr,
+   DT,
+   gtools,
+   igraph, 
+   MASS,
+   magrittr,
+   networkD3,
+   parallel,
+   pbapply,
+   pbmcapply,
+   sfsmisc,
+   shiny,
+   stats,
+   utils,
+   viridis,
+   visNetwork
+Depends: 
+    R (>= 2.10)
+VignetteBuilder: knitr
