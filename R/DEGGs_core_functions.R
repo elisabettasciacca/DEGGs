@@ -112,7 +112,8 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                               regression_method = regression_method,
                               edges = edges,
                               subgroup_variable = subgroup_variable,
-                              subgroups_length = length(subgroups))
+                              subgroups_length = length(subgroups),
+                              sig_edges_count = sig_edges_count)
     })
     parallel::stopCluster(cl)
   } else{
@@ -127,7 +128,8 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                                          regression_method = regression_method,
                                                          edges = edges,
                                                          subgroup_variable = subgroup_variable,
-                                                         subgroups_length = length(subgroups))
+                                                         subgroups_length = length(subgroups),
+                                                         sig_edges_count = sig_edges_count)
                                ))
   }
   names(pvalues_list) <- percentile_vector
@@ -228,7 +230,8 @@ calc_pvalues_percentile <- function(normalised_counts, metadata, percentile,
                                     subgroups_df_list, permutations,
                                     regression_method = "rlm", edges,
                                     subgroup_variable,
-                                    subgroups_length){
+                                    subgroups_length,
+                                    sig_edges_count){
 
   # 1st filtering step (remove low expressed genes,
   # i.e. genes under the percentile threshold)
