@@ -281,7 +281,12 @@ calc_pvalues_percentile <- function(normalised_counts, metadata, percentile,
   if(tot_edges > sig_edges_count){
     # num tot edges greater than previous sig edges count
     p_values.sig.count <- unlist(lapply(pvalues_list, function(subgroup_network){
-      length(which(subgroup_network$p.value < 0.05))
+      if(!is.null(dim(subgroup_network)))(
+        return(length(which(subgroup_network$p.value < 0.05)))
+      )
+      else (
+        return(0)
+      )
     }))
     num.sig_pvalues <- sum(p_values.sig.count)
     if(num.sig_pvalues > sig_edges_count){
