@@ -318,7 +318,7 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, metadata,
                                  subgroup_variable, regression_method = 'rlm',
                                  subgroups_length){
 
-  genes <- as_edgelist(subgroup_network, names = TRUE)
+  genes <- igraph::as_edgelist(subgroup_network, names = TRUE)
   genes <- base::unique(genes)
 
   # prepare data
