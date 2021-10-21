@@ -10,16 +10,11 @@
 #' @export
 print_simple_network <- function(DEGGs_object, subgroup){
   network <- subnetworks_object[["subnetworks"]][[subgroup]]
-  df <- as.data.frame(t(data.frame(matrix(unlist(network),
-                                          nrow = length(network),
-                                          byrow = TRUE))))
-  colnames(df)[1] <- "from"
-  colnames(df)[2] <- "to"
-  colnames(df)[3] <- "weight"
+  colnames(network)[3] <- "weight"
   # ES: TODO: add vertex names
-  df <- unique(df)
-  df$color <- ifelse(df$weight >= 0.05, "gray", "blue")
-  g <- igraph::graph.data.frame(d = df, directed = FALSE)
+  network <- unique(network)
+  network$color <- ifelse(network$weight >= 0.05, "gray", "blue")
+  g <- igraph::graph.data.frame(d = network, directed = FALSE)
   plot(g, vertex.size = 3, vertex.label = NA, edge.width = igraph::E(g)$width)
 }
 
