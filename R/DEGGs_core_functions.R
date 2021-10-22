@@ -36,8 +36,10 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
   if(entrezIDs == TRUE && convert_to_gene_symbols == TRUE){
     num_entrez_rows <- nrow(normalised_counts)
     normalised_counts$genesymbol <- suppressMessages(
-      AnnotationDbi::mapIds(org.Hs.eg.db::org.Hs.eg.db, rownames(normalised_counts),
-                           'SYMBOL', 'ENTREZID'))
+      AnnotationDbi::mapIds(x = org.Hs.eg.db::org.Hs.eg.db,
+                            keys = rownames(normalised_counts),
+                            column = 'ENTREZID',
+                            keytype = 'SYMBOL'))
     normalised_counts <- subset(normalised_counts,
                                 !is.na(normalised_counts$genesymbol))
     rownames(normalised_counts) <- normalised_counts$genesymbol
