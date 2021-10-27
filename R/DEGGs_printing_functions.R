@@ -198,28 +198,39 @@ View_interactive_subnetwork <- function(DEGGs_object, subgroup,
   edges <- subnetworks_object[["subnetworks"]][[subgroup]]
   edges$id <- paste(edges$from, edges$to, sep = "-")
   rownames(edges) <- edges$id
-  colnames(edges)[3] <- "width"
+  edges$title <- formatC(edges$p.value, format = "e", digits = 2)
+  # normalise p value between 0 and 1
+  edges$width <- edges$p.value - min(edges$p.value) /
+                    (max(edges$p.value) - min(edges$p.value))
+  # invert values (and multiply by 4 to increase width)
+  edges$width <- (1 - edges$width) * 4
+
   nodes <- data.frame("id" = unique(c(edges$from, edges$to)),
-                      "label" = unique(c(edges$from, edges$to)))
+                      "label" = unique(c(edges$from, edges$to)),
+                      "title" = unique(c(edges$from, edges$to)))
 
   # sever
   server <- shiny::shinyServer(function(input, output) {
 
     output$network <- visNetwork::renderVisNetwork({
-      visNetwork::visNetwork(nodes, edges) %>%
-        visNetwork::visEdges(arrows ="to") %>%
-        visNetwork::visIgraphLayout() %>%
+        visNetwork::visNetwork(nodes, edges) %>%
+        visNetwork::visIgraphLayout(physics = TRUE, smooth = TRUE, type = "full") %>%
+        visNetwork::visNodes(color = list("border" = 'white'),
+                             font = list("size" = 16)) %>%
+        visNetwork::visEdges(arrows ="to",
+                             color = list("inherit" = FALSE)) %>%
+
         visNetwork::visLayout(randomSeed = 12) %>% # to have always the same network
-        visNetwork::visOptions(highlightNearest=TRUE,
+        visNetwork::visOptions(highlightNearest = TRUE,
                                nodesIdSelection = TRUE)  %>%
+        visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20)  %>%
         visNetwork::visEvents(select = "function(data) {
                 Shiny.onInputChange('current_nodes_selection', data.nodes);
                 Shiny.onInputChange('current_edges_selection', data.edges);
                 ;}")
-
     })
 
-    #render data table restricted to selected nodes
+    # render data table restricted to selected nodes
     output$tbl <- DT::renderDT(
       edges %>%
         dplyr::filter(id %in% input$current_edges_selection),
@@ -244,7 +255,7 @@ View_interactive_subnetwork <- function(DEGGs_object, subgroup,
     # generate two rows,
     shiny::fluidRow(
       shiny::column(width = 12, visNetwork::visNetworkOutput("network",
-                                                             height = "50vh"), # column widths in a fluidRow should sum to 12
+                                                             height = "60vh"), # column widths in a fluidRow should sum to 12
                     shiny::column(width = 6, DT::DTOutput('tbl')),
                     shiny::column(width = 6, shiny::plotOutput('regressionPlot'))
       )
