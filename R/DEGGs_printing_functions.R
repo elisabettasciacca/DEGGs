@@ -30,7 +30,7 @@ print_simple_network <- function(DEGGs_object, subgroup){
 #' @return a network3D plot of the selected subnetwork
 #' @export
 print_force_network <- function(DEGGs_object, subgroup){
-  network <- subnetworks_object[["subnetworks"]][[subgroup]]
+  network <- DEGGs_object[["subnetworks"]][[subgroup]]
   nodes <- data.frame("name" = unique(c(network$from, network$to)))
   nodes$ID <- 0:(nrow(nodes)-1) # assign sequential IDs to nodes
   network <- base::merge(nodes, network, by.x = "name", by.y = "from")
