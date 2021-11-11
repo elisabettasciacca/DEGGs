@@ -149,7 +149,7 @@ print_regressions <- function (DEGGs_object, gene_A, gene_B,
                                              newdata = data.frame(x = new_x),
                                              interval = 'confidence'))
 
-  par(mar = c(5.2, 6, 3.3, 10.7), xpd = FALSE)
+  par(mar = c(5.2, 6, 3.3, 5), xpd = FALSE)
   plot(df[,1], df[,2], type = 'n', bty = 'l', las = 1, cex.axis = 1.1,
        font.main = 1, cex.lab = 1.3, xlab = colnames(df)[1],
        ylab = colnames(df)[2])
@@ -176,6 +176,7 @@ print_regressions <- function (DEGGs_object, gene_A, gene_B,
   par(xpd=TRUE)
   legend("topright", bty = "n", inset = c(legend_offset, 0), legend = subgroups,
          col = col, lty = 1, cex = 1.2)
+  on.exit(par(op))
 }
 
 
