@@ -49,7 +49,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
   }
   
   if(!subgroup_variable %in% colnames(metadata)){
-    stop(paste0("subgroup_variable must be in metadata as column"))
+    stop("subgroup_variable must be %in% colnames metadata")
   }
   
   if(entrezIDs == TRUE && convert_to_gene_symbols == TRUE){
@@ -167,7 +167,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                function(networks) (networks$sig_pvalues_count)))
   
   if(is.null(sig_pvalues)){
-    stop("Any significant difference between categories.")
+    stop("Any significant difference between subgroups.")
   }
   
   best_percentile <- sig_pvalues[which(sig_pvalues == max(sig_pvalues))]
