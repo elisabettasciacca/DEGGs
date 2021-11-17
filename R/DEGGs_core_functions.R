@@ -1,3 +1,12 @@
+setClass("Deggs", representation(
+  subnetworks = "list",
+  normalised_counts = "data.frame",
+  metadata = "data.frame",
+  subgroup_variable = "character",
+  regression_method = "character",
+  subgroups = "character"
+))
+
 #' Generate subnetworks
 #'
 #' Generate subgroup specific gene-gene interaction networks with interaction
@@ -25,7 +34,7 @@
 #' @return a DEGGs object with subgroup specific networks incorporating pvalues
 #' for each interaction
 #' @export
-generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
+generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable, 
                                  regression_method = 'rlm', subgroups = NULL,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
@@ -38,22 +47,26 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
     message(paste0("normalised_counts is not a dataframe"))
     return
   }
-
+  
+  if(!subgroup_variable %in% colnames(metadata)){
+    stop(paste0("subgroup_variable must be in metadata as column"))
+  }
+  
   if(entrezIDs == TRUE && convert_to_gene_symbols == TRUE){
     num_entrez_rows <- nrow(normalised_counts)
     normalised_counts$genesymbol <- suppressMessages(
       AnnotationDbi::mapIds(x = org.Hs.eg.db::org.Hs.eg.db,
-                            keys = rownames(normalised_counts),
-                            keytype = 'ENTREZID',
-                            column = 'SYMBOL'))
-    normalised_counts <- subset(normalised_counts,
+                            keys = rownames(normalised_counts), 
+                            keytype = 'ENTREZID', 
+                            column = 'SYMBOL')) 
+    normalised_counts <- subset(normalised_counts, 
                                 !is.na(normalised_counts$genesymbol))
     rownames(normalised_counts) <- normalised_counts$genesymbol
     normalised_counts$genesymbol <- NULL
-
-    message(paste0(num_entrez_rows - nrow(normalised_counts),
+    
+    message(paste0(num_entrez_rows - nrow(normalised_counts), 
                    " genes had no matching gene symbol."))
-
+    
     # generate graph of the main network (gene symbols)
     edges <- metapathway_gene_symbols
     main_graph <- igraph::graph.data.frame(edges, directed = FALSE)
@@ -66,17 +79,18 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
     edges <- metapathway_entrez_IDs
     main_graph <- igraph::graph.data.frame(edges, directed = FALSE)
   }
-
+  
   metadata <- tidy_metadata(subgroups = subgroups, metadata = metadata,
                             subgroup_variable = subgroup_variable)
-
+  
   # align metadata and count data
   normalised_counts <- normalised_counts[, rownames(metadata)]
   metadata <- metadata[colnames(normalised_counts), , drop = FALSE]
-
+  
   if(is.null(subgroups)) {
     subgroups <- levels(metadata[, subgroup_variable])
   }
+  
   permutations <- as.data.frame(t(gtools::permutations(n = length(subgroups), r = 2,
                                                v = subgroups,
                                                repeats.allowed = FALSE)))
@@ -85,24 +99,27 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
   subgroups_df_list <- lapply(subgroups, function(one_subgroup){
     metadata_subset_subgroup <- subset(metadata,
                                        metadata[, subgroup_variable] == one_subgroup)
+    
     subgroup_df <- normalised_counts[,rownames(metadata_subset_subgroup)]
-    subgroup_df <- apply(subgroup_df, 1, mean, na.rm = TRUE) #to check
+    subgroup_df <- apply(subgroup_df, 1, mean, na.rm = TRUE)
     rownames(subgroup_df) <- NULL
     return(subgroup_df)
   })
   names(subgroups_df_list) <- subgroups
-
+  
   # calculate pvalues list (with parallelisation)
   percentile_vector <- seq(0.7, 0.98, by = 0.05)
   sig_edges_count <- 0
-
+  
   if (Sys.info()["sysname"] == "Windows") {
     cl <- parallel::makeCluster(cores)
+
     parallel::clusterExport(cl, c("percentile_vector", "subgroups_df_list",
                         "permutations", "regression_method", "edges",
                         "subgroup_variable", "subgroups", "calc_pvalues_percentile",
                         "normalised_counts", "calc_pvalues_network", "metadata",
                         "sig_edges_count", "sig_var"), envir = environment())
+
     parallel::clusterEvalQ(cl, {
       library("gtools")
       library("igraph")
@@ -115,18 +132,19 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                               sig_var = sig_var,
                               metadata = metadata,
                               percentile = percentile,
-                              subgroups_df_list = subgroups_df_list,
-                              permutations = permutations,
-                              regression_method = regression_method,
-                              edges = edges,
-                              subgroup_variable = subgroup_variable,
+                              subgroups_df_list = subgroups_df_list, 
+                              permutations = permutations, 
+                              regression_method = regression_method, 
+                              edges = edges, 
+                              subgroup_variable = subgroup_variable, 
                               subgroups_length = length(subgroups),
                               sig_edges_count = sig_edges_count)
     })
     parallel::stopCluster(cl)
   } else{
-    # parallelisation for mac/linux
+    # Parallelisation for mac/linux
     pvalues_list <- pbmcapply::pbmclapply(mc.cores = cores, percentile_vector,
+                                          
                                function(percentile)(
                                  calc_pvalues_percentile(normalised_counts = normalised_counts,
                                                          sig_var = sig_var,
@@ -142,29 +160,36 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                ))
   }
   names(pvalues_list) <- percentile_vector
-
+  
   # extract the network filtered on the best threshold percentile
   # (highest number of statistically significant interactions)
-  sig_pvalues <- unlist(lapply(pvalues_list,
+  sig_pvalues <- unlist(lapply(pvalues_list, 
                                function(networks) (networks$sig_pvalues_count)))
-
+  
   if(is.null(sig_pvalues)){
     stop("Any significant difference between categories.")
   }
-
+  
   best_percentile <- sig_pvalues[which(sig_pvalues == max(sig_pvalues))]
   if(length(best_percentile) > 1){
     best_percentile <- best_percentile[1]
   }
-  message(paste0("Percolation analysis: genes whose expression is below the ",
-                 as.numeric(names(best_percentile)) * 100,
+  message(paste0("Percolation analysis: genes whose expression is below the ", 
+                 as.numeric(names(best_percentile)) * 100, 
                  "th percentile are removed from networks."))
   final_networks <- pvalues_list[[as.character(names(best_percentile))]]
-
-  return(list("subnetworks" = final_networks, "metadata" = metadata,
-              "normalised_counts" = normalised_counts))
-
-
+  
+  degg <- new("Deggs",
+              subnetworks = final_networks,
+              normalised_counts = normalised_counts,
+              metadata = metadata, 
+              subgroup_variable = subgroup_variable, 
+              regression_method = regression_method, 
+              subgroups = subgroups)
+  
+  return("degg" = degg)
+  
+  
 }
 
 
@@ -180,33 +205,33 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
 #' subgroup definition for each sample in `normalised_counts`
 #' @return tidied and aligned metadata
 tidy_metadata <- function(subgroups, metadata, subgroup_variable){
-
+  
   # select specified subgroups (optional)
   if(!is.null(subgroups)) {
-    metadata <- subset(metadata, metadata[, subgroup_variable] %in% subgroups)
+    metadata <- subset(metadata, metadata[, subgroup_variable] %in% subgroups) 
     if(is.factor(metadata[, subgroup_variable])) (
       metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
     )
   }
-
+  
   # if subgroup_variable is not a factor, conver to factor
   if(!is.factor(metadata[, subgroup_variable])){
     metadata[, subgroup_variable] <- as.factor(metadata[, subgroup_variable])
     message(paste0(subgroup_variable, " was converted to factor."))
   }
-
+  
   # remove subgroups of less than five observations
   # (regression would not be reliable enough)
   tbl <- table(metadata[, subgroup_variable])
   if (length(names(tbl)[tbl < 5]) > 0) {
     message(paste0("The ", names(tbl)[tbl < 5],
-                   " subgroup did not contain enough samples
+                   " subgroup did not contain enough samples 
                    (less than five observations). ",
                    "This subgroup will be removed.\n"))
-    metadata <- subset(metadata, metadata[, subgroup_variable]
+    metadata <- subset(metadata, metadata[, subgroup_variable] 
                        %in% names(tbl)[tbl > 5])
   }
-
+  
   # remove NAs
   NAs_number <- length(which(is.na(metadata[, subgroup_variable])))
   if(NAs_number > 0) {
@@ -214,8 +239,8 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
     metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
     message(paste0(subgroup_variable, " column contained NAs. ",
                    NAs_number, " samples were removed."))
-  }
-
+  } 
+  
   return(metadata)
 }
 
@@ -245,10 +270,11 @@ calc_pvalues_percentile <- function(normalised_counts,
                                     subgroup_variable,
                                     subgroups_length,
                                     sig_edges_count){
-
-  # 1st filtering step (remove low expressed genes,
+  
+  # 1st filtering step (remove low expressed genes, 
   # i.e. genes under the percentile threshold)
   cut_off <- stats::quantile(as.matrix(normalised_counts), prob = percentile)
+
   subgroups_df_list <- lapply(subgroups_df_list, function(subgroup_df){
     subgroup_df <- subgroup_df[subgroup_df > cut_off]
     if(length(subgroup_df) == 0) (
@@ -263,36 +289,36 @@ calc_pvalues_percentile <- function(normalised_counts,
     subgroupEdges <- edges %>%
       dplyr::filter(from %in% names(subgroup_df)) %>%
       dplyr::filter(to   %in% names(subgroup_df))
-    subgroupEdges <- igraph::graph.data.frame(subgroupEdges, directed = TRUE)
+    subgroupEdges <- simplify(igraph::graph.data.frame(subgroupEdges, directed=FALSE), remove.loops = TRUE)
     } else {
     subgroupEdges <- igraph::make_empty_graph(n = 0, directed = TRUE)
     }
     return(subgroupEdges)
   })
-
+  
   # intersections
   network_intersection_list <- lapply(permutations, function(permutation){
-    return(igraph::intersection(subgroups_network_list[[permutation[1]]],
-                        subgroups_network_list[[permutation[2]]]))
+    return(igraph::intersection(subgroups_network_list[[permutation[1]]], 
+                                subgroups_network_list[[permutation[2]]]))
   })
-
+  
   # union
   union_graph <- base::do.call(igraph::union, network_intersection_list)
-
+  
   # remove unions (i.e. remove overlapping edges across networks)
   subgroups_network_list <- lapply(subgroups_network_list, function(subgroup_network){
     return(igraph::difference(subgroup_network, union_graph))
   })
-
+  
   # count tot edges left
   tot_edges_list <- unlist(lapply(subgroups_network_list, function(subgroup_network){
     igraph::gsize(subgroup_network)
   }))
   tot_edges <- sum(tot_edges_list)
-
+  
   # calculate interaction p values
   pvalues_list <- lapply(subgroups_network_list, function(subgroup_network){
-
+    
     return(calc_pvalues_network(subgroup_network = subgroup_network,
                                 normalised_counts = normalised_counts,
                                 metadata = metadata,
@@ -300,11 +326,10 @@ calc_pvalues_percentile <- function(normalised_counts,
                                 regression_method = regression_method,
                                 subgroups_length = subgroups_length,
                                 sig_var = sig_var))
-
   })
-
-  # count significant p values
-  if(tot_edges > sig_edges_count){
+  
+  # count significant p-values
+  if(tot_edges > sig_edges_count){ 
     # num tot edges greater than previous sig edges count
     p_values.sig.count <- unlist(lapply(pvalues_list, function(subgroup_network){
       if(!is.null(dim(subgroup_network)))(
@@ -320,17 +345,16 @@ calc_pvalues_percentile <- function(normalised_counts,
     }
     pvalues_list <- append(pvalues_list, num.sig_pvalues)
     names(pvalues_list)[length(pvalues_list)] <- "sig_pvalues_count"
-
+    
     return(pvalues_list)
-
-  } else {
-    # previous sig edges count greater than total num of edges
+    
+  } else {  
+    # previous sig edges count greater than num tot edges 
     return(NULL)
-
+    
   }
-
+  
 }
-
 
 #' Calculate the pvalues for specific subgroup network samples
 #'
