@@ -349,7 +349,7 @@ calc_pvalues_percentile <- function(normalised_counts,
   # count significant p-values
   if(tot_edges > sig_edges_count){
     # num tot edges greater than previous sig edges count
-    p_values.sig.count <- unlist(lapply(pvalues_list, function(subgroup_network){
+    p_values_sig_count <- unlist(lapply(pvalues_list, function(subgroup_network){
       if(!is.null(dim(subgroup_network)))(
         return(length(which(subgroup_network[, sig_var] < 0.05))) # these are either pvalues or qvalues
       )
@@ -357,11 +357,11 @@ calc_pvalues_percentile <- function(normalised_counts,
         return(0)
       )
     }))
-    num.sig_pvalues <- sum(p_values.sig.count) # these are either pvalues or qvalues
-    if(num.sig_pvalues > sig_edges_count){
-      sig_edges_count <<- num.sig_pvalues
+    num_sig_pvalues <- sum(p_values_sig_count) # these are either pvalues or qvalues
+    if(num_sig_pvalues > sig_edges_count){
+      sig_edges_count <<- num_sig_pvalues
     }
-    pvalues_list <- append(pvalues_list, num.sig_pvalues)
+    pvalues_list <- append(pvalues_list, num_sig_pvalues)
     names(pvalues_list)[length(pvalues_list)] <- "sig_pvalues_count"
 
     return(pvalues_list)
