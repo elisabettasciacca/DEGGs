@@ -267,7 +267,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   edges$width <- (1 - edges$width) * 4
 
   # Set up edges color
-  edges$color <- ifelse(edges[, sig_var] < 0.5, "royalblue", "gray")
+  edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
 
   nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
                       "label" = unique(c(edges$from, edges$to)),
@@ -278,7 +278,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
 
     output$network <- visNetwork::renderVisNetwork({
 
-      edges <- edges[edges[, sig_var] >= abs(input$slider), ]
+      edges <- edges[edges[, sig_var] < input$slider, ]
       nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
                           "label" = unique(c(edges$from, edges$to)),
                           "title" = unique(c(edges$from, edges$to)))
@@ -345,8 +345,8 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
         # Slider
         shiny::sliderInput("slider",
                     label = ifelse(use_qvalues, "q-values", "p-values"),
-                    min = min(abs(edges[, sig_var])), max = max(edges[, sig_var]),
-                    value = 0.7, step = 0.01,),
+                    min = 0.01, max = max(edges[, sig_var]),
+                    value = 0.05, step = 0.01),
 
         #minimo e massimo dello slider che si impostano in base ai miei valori di correlazione.
 
@@ -372,4 +372,5 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   shiny::shinyApp(ui = ui, server = server)
 }
 
-
+View_interactive_subnetwork(deggs_object = subnetworks_object,
+                            subgroup = "BRCA_Her2")
