@@ -167,11 +167,9 @@ print_regressions <- function (deggs_object,
        ylab = colnames(df)[2])
   par(xpd = FALSE)
   
-  
   cols <- col[df[, subgroup_variable]]
   pch <- c(16 : (16 + subgroup_length -1))[df[, subgroup_variable]]
-  for(i in 1:subgroup_length) {
-    
+  for(i in 1:subgroup_length) {    
     # plot confidence intervals
     polygon(c(rev(new_x), new_x), c(rev(preds[[i]][ ,3]), preds[[i]][ ,2]), 
             col = adjustcolor(col[i], alpha.f = 0.15), border = NA)
@@ -182,15 +180,12 @@ print_regressions <- function (deggs_object,
                   df[df[, subgroup_variable] == subgroups[i], 2], cex = 1.5, 
                   pch = pch, col = adjustcolor(cols, alpha.f = 0.7))
   }
-  
   mtext(bquote(paste("P"["interaction"]*"=",
                      .(format(p_interaction, digits = 2)))),
         cex = 1.3, side = 3, adj = 0.04)
-  
   legend("topright", bty = "n", inset=c(legend_offset, 0), legend = subgroups, 
          xpd=TRUE, col = col, lty = 1, cex = 1.2)
-  
-  
+  on.exit(par(op))
 }
 
 
