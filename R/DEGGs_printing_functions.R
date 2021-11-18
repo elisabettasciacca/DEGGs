@@ -158,7 +158,7 @@ print_regressions <- function (deggs_object,
   }
 
   # Plot
-  prefix <- ifelse(use_qvalues == TRUE, "Padj", "P")
+  prefix <- ifelse(use_qvalues, "Padj", "P")
   col <- viridis::viridis(n = subgroup_length)
   x_adj <- (max(df[,1], na.rm = T) - min(df[,1], na.rm = T)) * 0.05
   new_x <- seq(min(df[,1], na.rm = T) - x_adj,
@@ -252,7 +252,7 @@ node_boxplot <- function(gene, deggs_object) {
 View_interactive_subnetwork <- function(deggs_object, subgroup,
                                         use_qvalues = TRUE){
 
-  sig_var <- ifelse(use_qvalues == TRUE, "q.value", "p.value")
+  sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   edges <- deggs_object@subnetworks[[subgroup]]
 
