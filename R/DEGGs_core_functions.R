@@ -57,7 +57,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                  use_qvalues = TRUE,
                                  cores = parallel::detectCores()/2){
 
-  sig_var <- ifelse(use_qvalues == TRUE, "p.value", "q.value")
+  sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   if(is.data.frame(normalised_counts) == FALSE){
     message(paste0("normalised_counts is not a dataframe"))
