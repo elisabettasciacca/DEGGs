@@ -171,6 +171,13 @@ print_regressions <- function (deggs_object,
                                              newdata = data.frame(x = new_x),
                                              interval = 'confidence'))
 
+  all_interactions <- do.call(rbind, subnetworks_object@subnetworks)
+  Padj_interaction <- all_interactions[which(all_interactions$from == gene_A &
+                                            all_interactions$to == gene_B),
+                                       sig_var]
+
+  sig_interaction <- ifelse(use_qvalues, Padj_interaction, p_interaction)
+
   op <- par(mar = c(5.2, 6, 3.3, 5), xpd = TRUE)
   plot(df[,1], df[,2], type = 'n', bty = 'l', las = 1, cex.axis = 1.1,
        font.main = 1, cex.lab = 1.3, xlab = colnames(df)[1],
@@ -191,7 +198,7 @@ print_regressions <- function (deggs_object,
                   pch = pch, col = adjustcolor(cols, alpha.f = 0.7))
   }
   mtext(bquote(paste(.(prefix)["interaction"]*"=",
-                     .(format(p_interaction, digits = 2)))),
+                     .(format(sig_interaction, digits = 2)))),
         cex = 1.2, side = 3, adj = 0.04)
   legend(x = legend_position, legend = subgroups,
          col = col, lty = 1,
@@ -311,7 +318,8 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
       req(input$current_edges_selection !="")
       print_regressions(gene_A = edges[input$current_edges_selection, "from"],
                         gene_B = edges[input$current_edges_selection, "to"],
-                        deggs_object = subnetworks_object)
+                        deggs_object = subnetworks_object,
+                        use_qvalues = use_qvalues)
     })
 
     output$boxPlot <-  shiny::renderPlot({
