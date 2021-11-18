@@ -85,6 +85,7 @@ print_regressions <- function (deggs_object,
                                use_qvalues = TRUE,
                                legend_position = "topright"){
 
+  sig_var <- ifelse(use_qvalues, "q.value", "p.value")
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
   subgroups = deggs_object@subgroups
