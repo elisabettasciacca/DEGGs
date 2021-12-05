@@ -439,7 +439,7 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
     p_values$from <- as.character(p_values$from)
     p_values$to <- as.character(p_values$to)
 
-    if(use_qvalues){
+    if(sig_var == "q.value"){
       # adding Storey's q-values
       q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
       if (class(q.values) == "try-error") {
