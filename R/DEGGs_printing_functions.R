@@ -85,6 +85,7 @@ print_regressions <- function (deggs_object,
                                use_qvalues = TRUE,
                                legend_position = "topright"){
 
+  use_qvalues <- subnetworks_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
@@ -216,6 +217,7 @@ print_regressions <- function (deggs_object,
 #' @param cex.lab lab dimension
 #' @return the gene boxplot
 node_boxplot <- function(gene, deggs_object) {
+
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
   subgroup_variable <- deggs_object@subgroup_variable
@@ -253,6 +255,7 @@ node_boxplot <- function(gene, deggs_object) {
 View_interactive_subnetwork <- function(deggs_object, subgroup,
                                         use_qvalues = TRUE){
 
+  use_qvalues <- subnetworks_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   edges <- deggs_object@subnetworks[[subgroup]]
