@@ -336,9 +336,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
     observe({
       if(input$searchButton > 0){
         isolate({
-          print(input$searchText)
           current_node <- nodes[grep(input$searchText, nodes$label), "id"]
-          print(current_node)
           visNetwork::visNetworkProxy("network") %>%
             visNetwork::visSelectNodes(id  = current_node)
         })
