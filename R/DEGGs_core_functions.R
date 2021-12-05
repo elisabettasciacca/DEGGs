@@ -18,7 +18,8 @@ setClass("Deggs", slots = list(
   metadata          = "data.frame",
   subgroup_variable = "character",
   regression_method = "character",
-  subgroups         = "character"
+  subgroups         = "character",
+  use_qvalues       = "logical"
 ))
 
 
@@ -201,7 +202,8 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
               metadata = metadata,
               subgroup_variable = subgroup_variable,
               regression_method = regression_method,
-              subgroups = subgroups)
+              subgroups = subgroups,
+              use_qvalues = use_qvalues)
 
   return(degg)
 
