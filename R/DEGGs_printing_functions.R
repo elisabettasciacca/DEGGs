@@ -350,8 +350,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
     output$edge_or_node_plot <-  shiny::renderPlot({
       edges <- deggs_object@subnetworks[[input$subgroup]]
     try(
-      if(input$current_edges_selection != "" &
-         is.null(input$current_nodes_selection) &
+      if(is.null(input$current_nodes_selection) &
          length(input$current_edges_selection) == 1) {
 
           print_regressions(gene_A = edges[input$current_edges_selection, "from"],
@@ -359,10 +358,10 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
                             deggs_object = subnetworks_object,
                             use_qvalues = use_qvalues)
             } else {
-              req(input$current_nodes_selection !="")
+              req(input$current_nodes_selection != "")
               node_boxplot(input$current_nodes_selection, deggs_object = subnetworks_object)
-            }
-      )
+            },
+      silent = TRUE)
     })
 
     # Highligh the searched node in the network
@@ -429,3 +428,4 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   )
   shiny::shinyApp(ui = ui, server = server)
 }
+
