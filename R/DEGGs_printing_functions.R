@@ -258,38 +258,68 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   use_qvalues <- subnetworks_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
-  edges <- deggs_object@subnetworks[[subgroup]]
+  ################# server ########################
+  server <- function(input, output, session) {
 
-  # Set up table
-  edges$id <- rownames(edges)
-  edges$`p-value` <- formatC(edges$p.value, format = "e", digits = 3)
-  edges$`q-value` <- formatC(edges$p.value, format = "e", digits = 3)
+    outVar = reactive({
+      deggs_object@subnetworks[[input$subgroup]]
+    })
 
-  # Set up tooltip
-  prefix <- ifelse(use_qvalues == TRUE, "Padj=", "P=")
-  edges$title <- paste0(prefix,
-                        formatC(edges[, sig_var], format = "e", digits = 2) )
+    nodes_selection <- shiny::reactiveValues(current_node = NULL)
 
-  # Set up edges width
-  # normalise p value between 0 and 1
-  edges$width <- edges[, sig_var] - min(edges[, sig_var]) /
-    (max(edges[, sig_var]) - min(edges[, sig_var]))
-  # invert values (and multiply by 4 to increase width)
-  edges$width <- (1 - edges$width) * 4
+    # Set up reactive table
+    edges <- reactive({
+      edges <- deggs_object@subnetworks[[input$subgroup]]
+      edges <- edges[edges[, sig_var] < input$slider, ]
+      edges$id <- rownames(edges)
 
-  # Set up edges color
-  edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
+      if(use_qvalues) (
+        edges$`q value` <- formatC(edges$q.value, format = "e", digits = 3)
+      ) else (
+        edges$`p value` <- formatC(edges$p.value, format = "e", digits = 3)
+      )
+      if (!is.null(nodes_selection$current_node))(
+        DT::datatable(edges %>%
+                        dplyr::filter(from %in% nodes_selection$current_node |
+                                        to   %in% nodes_selection$current_node),
+                      options = list(lengthChange = FALSE, scrollX = T,
+                                     columnDefs = list(list(visible=FALSE,
+                                                            targets=c(3:4)))),
+                      rownames = TRUE)
+      ) else if (length(input$current_edges_selection) != 0)(
+        DT::datatable(edges %>%
+                        dplyr::filter(id %in% input$current_edges_selection),
+                      options = list(lengthChange = FALSE, scrollX = T,
+                                     columnDefs = list(list(visible=FALSE,
+                                                            targets=c(3:4)))),
+                      rownames = TRUE)
+      )
+      })
 
-  nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
-                      "label" = unique(c(edges$from, edges$to)),
-                      "title" = unique(c(edges$from, edges$to)))
-
-  # sever
-  server <- shiny::shinyServer(function(input, output) {
-
+    # Network
     output$network <- visNetwork::renderVisNetwork({
 
+      edges <- deggs_object@subnetworks[[input$subgroup]]
+      edges$id <- rownames(edges)
+
+      # Set up tooltip
+      prefix <- ifelse(use_qvalues == TRUE, "Padj=", "P=")
+      edges$title <- paste0(prefix,
+                            formatC(edges[, sig_var], format = "e", digits = 2) )
+
+      # Set up edges width
+      # normalise p value between 0 and 1
+      edges$width <- edges[, sig_var] - min(edges[, sig_var]) /
+        (max(edges[, sig_var]) - min(edges[, sig_var]))
+      # invert values (and multiply by 4 to increase width)
+      edges$width <- (1 - edges$width) * 4
+
+      # Set up edges color
+      edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
+
+      # Slider
       edges <- edges[edges[, sig_var] < input$slider, ]
+
       nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
                           "label" = unique(c(edges$from, edges$to)),
                           "title" = unique(c(edges$from, edges$to)))
@@ -302,8 +332,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
                              color = list("inherit" = FALSE)) %>%
 
         visNetwork::visLayout(randomSeed = 12) %>% # to have always the same network
-        visNetwork::visOptions(highlightNearest = TRUE,
-                               nodesIdSelection = TRUE)  %>%
+        visNetwork::visOptions(highlightNearest = TRUE)  %>%
         visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20)  %>%
         visNetwork::visEvents(select = "function(data) {
                 Shiny.onInputChange('current_nodes_selection', data.nodes);
@@ -311,23 +340,24 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
                 ;}")
     })
 
-    output$tbl <- DT::renderDT(
-      edges %>%
-        dplyr::filter(id %in% input$current_edges_selection),
-      options = list(lengthChange = FALSE, scrollX = T,
-                     columnDefs = list(list(visible=FALSE, targets=c(1:5,8:10)))),
-      rownames = TRUE)
 
+    # Table
+    output$tbl <- DT::renderDT({
+      edges()})
+
+
+    # Plot
     output$edge_or_node_plot <-  shiny::renderPlot({
-      try(
-      if(input$current_edges_selection !="" &
+      edges <- deggs_object@subnetworks[[input$subgroup]]
+    try(
+      if(input$current_edges_selection != "" &
          is.null(input$current_nodes_selection) &
          length(input$current_edges_selection) == 1) {
 
-      print_regressions(gene_A = edges[input$current_edges_selection, "from"],
-                        gene_B = edges[input$current_edges_selection, "to"],
-                        deggs_object = subnetworks_object,
-                        use_qvalues = use_qvalues)
+          print_regressions(gene_A = edges[input$current_edges_selection, "from"],
+                            gene_B = edges[input$current_edges_selection, "to"],
+                            deggs_object = subnetworks_object,
+                            use_qvalues = use_qvalues)
             } else {
               req(input$current_nodes_selection !="")
               node_boxplot(input$current_nodes_selection, deggs_object = subnetworks_object)
@@ -339,30 +369,45 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
     observe({
       if(input$searchButton > 0){
         isolate({
-          current_node <- nodes[grep(input$searchText, nodes$label), "id"]
+          edges <- deggs_object@subnetworks[[input$subgroup]]
+          nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
+                              "label" = unique(c(edges$from, edges$to)),
+                              "title" = unique(c(edges$from, edges$to)))
+
+          nodes_selection$current_node <- nodes[grep(input$searchText, nodes$label,
+                                     ignore.case = TRUE), "id"]
           visNetwork::visNetworkProxy("network") %>%
-            visNetwork::visSelectNodes(id  = current_node)
+            visNetwork::visSelectNodes(id  = nodes_selection$current_node )
         })
       }
     })
 
-  })
+    observe({
+      updateSliderInput(session, inputId = "slider",
+                        max = max(round(outVar()[, sig_var], digits = 3))
+      )})
 
+  }
 
+  ################# UI ########################
   ui <- shiny::fluidPage(
-    shiny::titlePanel(subgroup),
+    shiny::titlePanel("DEGGs subnetworks"),
 
     shiny::sidebarLayout(
       shiny::sidebarPanel(
         width = 4, # this will leave more space for the network
 
+        # dropdown menu for subgroup
+        shiny::selectInput(inputId = "subgroup", label = "Subgroup",
+                           choices = levels(deggs_object@metadata[, deggs_object@subgroup_variable]),
+                           selected = levels(deggs_object@metadata[, deggs_object@subgroup_variable])[1]),
+
         # Slider
         shiny::sliderInput("slider",
-                    label = ifelse(use_qvalues, "q-values", "p-values"),
-                    min = 0.01, max = max(edges[, sig_var]),
+                    label = ifelse(use_qvalues, "q values", "p values"),
+                    min = 0.01,
+                    max = 10,   # fake, it will be updated by updateSliderInput
                     value = 0.05, step = 0.01),
-
-        #minimo e massimo dello slider che si impostano in base ai miei valori di correlazione.
 
         # Table
         shiny::tags$div(DT::DTOutput('tbl'), style = "font-size: 75%"),
@@ -370,7 +415,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
         # Searchbox
         shinydashboard::sidebarSearchForm(textId = "searchText",
                                           buttonId = "searchButton",
-                                          label = "Search..."),
+                                          label = "Search node..."),
 
         # Plots
         shiny::tags$div(shiny::plotOutput('edge_or_node_plot'))
@@ -384,3 +429,7 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   )
   shiny::shinyApp(ui = ui, server = server)
 }
+
+
+View_interactive_subnetwork(deggs_object = subnetworks_object,
+                            subgroup = "BRCA_Her2")
