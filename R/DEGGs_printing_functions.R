@@ -429,7 +429,3 @@ View_interactive_subnetwork <- function(deggs_object, subgroup,
   )
   shiny::shinyApp(ui = ui, server = server)
 }
-
-
-View_interactive_subnetwork(deggs_object = subnetworks_object,
-                            subgroup = "BRCA_Her2")
