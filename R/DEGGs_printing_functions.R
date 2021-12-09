@@ -247,13 +247,10 @@ node_boxplot <- function(gene, deggs_object) {
 #'
 #' @param Deggs_object an object of class Deggs generated from
 #' `generate_subnetworks`
-#' @param subgroup the subgroup of interest: the associated network will be
-#' visualised
 #' @importFrom magrittr %>%
 #' @return a network plot with selectable nodes and links
 #' @export
-View_interactive_subnetwork <- function(deggs_object, subgroup,
-                                        use_qvalues = TRUE){
+View_interactive_subnetwork <- function(deggs_object){
 
   use_qvalues <- subnetworks_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
