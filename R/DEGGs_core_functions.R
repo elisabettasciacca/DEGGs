@@ -443,7 +443,6 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
       # adding Storey's q-values
       q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
       if (class(q.values) == "try-error") {
-        print(p_values[, "p.value"])
         q.values <-  qvalue::qvalue(p = p_values[, "p.value"], pi0 = 1)$qvalues
       }
       p_values$q.value <- q.values
