@@ -53,6 +53,7 @@ setClass("Deggs", slots = list(
 #' @export
 generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                  regression_method = 'rlm', subgroups = NULL,
+                                 network = NULL,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
                                  use_qvalues = TRUE,
@@ -84,35 +85,63 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
     message(paste0(num_entrez_rows - nrow(normalised_counts),
                    " genes had no matching gene symbol."))
 
-    # generate graph of the main network (gene symbols)
-    edges <- metapathway_gene_symbols
-    main_graph <- igraph::graph.data.frame(edges, directed = FALSE)
-  } else if(entrezIDs == FALSE){
-    # generate graph of the main network (gene symbols)
-    edges <- metapathway_gene_symbols
-    main_graph <- igraph::graph.data.frame(edges, directed = FALSE)
+    # main network (gene symbols)
+    if(is.null(network))(
+      edges <- metapathway_gene_symbols %>%
+        dplyr::filter(from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(to   %in% rownames(normalised_counts))
+    ) else (
+      edges <- network %>%
+        dplyr::filter(from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(to   %in% rownames(normalised_counts))
+    )
+  } else if (entrezIDs == FALSE){
+    # main network (gene symbols)
+    if(is.null(network))(
+    edges <- metapathway_gene_symbols %>%
+      dplyr::filter(from %in% rownames(normalised_counts)) %>%
+      dplyr::filter(to   %in% rownames(normalised_counts))
+    ) else (
+      edges <- network %>%
+        dplyr::filter(from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(to   %in% rownames(normalised_counts))
+    )
+
   } else {
-    # generate graph of the main network (entrezIDs)
-    edges <- metapathway_entrez_IDs
-    main_graph <- igraph::graph.data.frame(edges, directed = FALSE)
+    # main network (entrezIDs)
+    if(is.null(network))(
+    edges <- metapathway_entrez_IDs %>%
+      dplyr::filter(from %in% rownames(normalised_counts)) %>%
+      dplyr::filter(to   %in% rownames(normalised_counts))
+    ) else (
+      edges <- network %>%
+        dplyr::filter(from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(to   %in% rownames(normalised_counts))
+    )
+
   }
+  edges$edge_ID <- paste(edges$from, edges$to)
+  edges <- edges[!duplicated(edges$edge_ID),]
+  edges$edge_ID <- NULL
 
   metadata <- tidy_metadata(subgroups = subgroups, metadata = metadata,
                             subgroup_variable = subgroup_variable)
 
   # align metadata and count data
-  normalised_counts <- normalised_counts[, rownames(metadata)]
+  nodes <- c(edges[,1], edges[,2]) %>%
+    unique()
+  normalised_counts <- normalised_counts[rownames(normalised_counts) %in% nodes,
+                                         rownames(metadata)]
   metadata <- metadata[colnames(normalised_counts), , drop = FALSE]
 
   if(is.null(subgroups)) {
     subgroups <- levels(metadata[, subgroup_variable])
   }
 
-  permutations <- as.data.frame(t(gtools::permutations(n = length(subgroups), r = 2,
-                                               v = subgroups,
-                                               repeats.allowed = FALSE)))
+  combinations <- combn(subgroups, m = 2) %>%
+    as.data.frame()
 
-  # create lists of samples for each subgroup
+  # create subgroups (duplicating count data for each subgroup)
   subgroups_df_list <- lapply(subgroups, function(one_subgroup){
     metadata_subset_subgroup <- subset(metadata,
                                        metadata[, subgroup_variable] == one_subgroup)
@@ -132,13 +161,12 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
     cl <- parallel::makeCluster(cores)
 
     parallel::clusterExport(cl, c("percentile_vector", "subgroups_df_list",
-                        "permutations", "regression_method", "edges",
+                        "combinations", "regression_method", "edges",
                         "subgroup_variable", "subgroups", "calc_pvalues_percentile",
                         "normalised_counts", "calc_pvalues_network", "metadata",
                         "sig_edges_count", "sig_var"), envir = environment())
 
     parallel::clusterEvalQ(cl, {
-      library("gtools")
       library("igraph")
       library("dplyr")
       library("edgeR")
@@ -150,7 +178,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                               metadata = metadata,
                               percentile = percentile,
                               subgroups_df_list = subgroups_df_list,
-                              permutations = permutations,
+                              combinations = combinations,
                               regression_method = regression_method,
                               edges = edges,
                               subgroup_variable = subgroup_variable,
@@ -168,7 +196,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                                          metadata = metadata,
                                                          percentile = percentile,
                                                          subgroups_df_list = subgroups_df_list,
-                                                         permutations = permutations,
+                                                         combinations = combinations,
                                                          regression_method = regression_method,
                                                          edges = edges,
                                                          subgroup_variable = subgroup_variable,
@@ -184,7 +212,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                function(networks) (networks$sig_pvalues_count)))
 
   if(is.null(sig_pvalues)){
-    stop("Any significant difference between subgroups.")
+    stop("Any significant difference across subgroups.")
   }
 
   best_percentile <- sig_pvalues[which(sig_pvalues == max(sig_pvalues))]
@@ -206,8 +234,6 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
               use_qvalues = use_qvalues)
 
   return(degg)
-
-
 }
 
 
@@ -267,7 +293,7 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
 #'
 #' @param percentile A float number that represents the percentile
 #' @param subgroups_df_list list of subgroup dataframes
-#' @param permutations dataframe containing the subgroups permutations in rows
+#' @param combinations dataframe containing the subgroups combinations in rows
 #' @param regression_method whether to use robust linear modeling for the
 #' interaction p-values. Options are 'rlm' (default) or 'lm'
 #' @param edges A dataframe of the meta pathway edges
@@ -280,9 +306,10 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
 #' for a specific percentile
 calc_pvalues_percentile <- function(normalised_counts,
                                     sig_var,
-                                    metadata, percentile,
+                                    metadata,
+                                    percentile,
                                     subgroups_df_list,
-                                    permutations,
+                                    combinations,
                                     regression_method = "rlm",
                                     edges,
                                     subgroup_variable,
@@ -292,49 +319,58 @@ calc_pvalues_percentile <- function(normalised_counts,
   # 1st filtering step (remove low expressed genes,
   # i.e. genes under the percentile threshold)
   cut_off <- stats::quantile(as.matrix(normalised_counts), prob = percentile)
+  user_message <- paste0("No gene above the threshold (", percentile*100, "th percentile).")
 
   subgroups_df_list <- lapply(subgroups_df_list, function(subgroup_df){
     subgroup_df <- subgroup_df[subgroup_df > cut_off]
     if(length(subgroup_df) == 0) (
-      subgroup_df <- paste0("No gene above the ", percentile*100, "th percentile.")
+      subgroup_df <- user_message
     )
     return(subgroup_df)
   })
 
-  # subgroup network list creation
-  subgroups_network_list <- lapply(subgroups_df_list, function(subgroup_df){
+  # format to string vectors to allow easy detection of overlapping edges
+  networks_to_string <- lapply(subgroups_df_list, function(subgroup_df){
     if(class(subgroup_df) != "character") {
-    subgroupEdges <- edges %>%
-      dplyr::filter(from %in% names(subgroup_df)) %>%
-      dplyr::filter(to   %in% names(subgroup_df))
-    subgroupEdges <- igraph::simplify(igraph::graph.data.frame(subgroupEdges,
-                                                       directed=TRUE),
-                              remove.loops = TRUE)
+      subgroupEdges <- edges %>%
+        dplyr::filter(from %in% names(subgroup_df)) %>%
+        dplyr::filter(to   %in% names(subgroup_df))
+      network_to_string <- do.call(paste, subgroupEdges)
     } else {
-    subgroupEdges <- igraph::make_empty_graph(n = 0, directed = TRUE)
+      network_to_string <- user_message
     }
-    return(subgroupEdges)
+    return(network_to_string)
   })
 
-  # intersections
-  network_intersection_list <- lapply(permutations, function(permutation){
-    return(igraph::intersection(subgroups_network_list[[permutation[1]]],
-                                subgroups_network_list[[permutation[2]]]))
-  })
+  # find overlapping edges across subgroups
+  common_links <- lapply(combinations, function(combination){
+    return(intersect(networks_to_string[[combination[1]]],
+                     networks_to_string[[combination[2]]]))
+  }) %>%
+    unlist() %>%
+    unique()
 
-  # union
-  union_graph <- base::do.call(igraph::union, network_intersection_list)
+  if(user_message %in% common_links)(
+    common_links <- common_links[!(common_links %in% user_message)]
+  )
 
-  # remove unions (i.e. remove overlapping edges across networks)
-  subgroups_network_list <- lapply(subgroups_network_list, function(subgroup_network){
-    return(igraph::difference(subgroup_network, union_graph))
+  # remove overlapping edges and format as data frame
+  subgroups_network_list <- lapply(networks_to_string, function(subnetwork){
+    subnetwork <- subnetwork[!subnetwork %in% common_links]
+    if(!(user_message %in% subnetwork))(
+      subnetwork <- data.frame('from' = unlist(lapply(strsplit(subnetwork, " "), `[[`, 1)),
+                               'to'   = unlist(lapply(strsplit(subnetwork, " "), `[[`, 2)) )
+    )
+    return(subnetwork)
   })
 
   # count tot edges left
-  tot_edges_list <- unlist(lapply(subgroups_network_list, function(subgroup_network){
-    igraph::gsize(subgroup_network)
-  }))
-  tot_edges <- sum(tot_edges_list)
+  tot_edges <- unlist(lapply(subgroups_network_list, function(subgroup_network){
+    if(class(subgroup_network) != "character")(
+      nrow(subgroup_network)
+    )
+  })) %>%
+    sum()
 
   # calculate interaction p values
   pvalues_list <- lapply(subgroups_network_list, function(subgroup_network){
@@ -387,51 +423,54 @@ calc_pvalues_percentile <- function(normalised_counts,
 #' @param regression_method whether to use robust linear modeling for the
 #' interaction p-values. Options are 'rlm' (default) or 'lm'
 #' @param subgroups_length An integer number that represent the number
-#' of subgroups inside the metadata dataframe
+#' of subgroups
 #' @return The list of pvalues
 calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
                                  metadata, subgroup_variable,
                                  regression_method = 'rlm', subgroups_length){
 
-  genes <- igraph::as_edgelist(subgroup_network, names = TRUE) %>%
-           unique()
+  if(class(subgroup_network) != "character"){
+    if(nrow(subgroup_network) > 0){
+      # prepare data
+      df_list <- mapply(function(gene_B, gene_A){
+        return(data.frame(t(normalised_counts[gene_A, ]),
+                          t(normalised_counts[gene_B, ]),
+                          metadata[, subgroup_variable],
+                          check.names = FALSE))
+      }, gene_A = subgroup_network$from, gene_B = subgroup_network$to, SIMPLIFY = F)
 
-  if(nrow(genes) != 0){
-    # prepare data
-    df_list <- mapply(function(gene_B, gene_A){
-      return(data.frame(t(normalised_counts[gene_A, ]),
-                        t(normalised_counts[gene_B, ]),
-                        metadata[, subgroup_variable],
-                        check.names = FALSE))
-    }, gene_B = genes[, 2], gene_A = genes[, 1], SIMPLIFY = F)
-
-    # calculate regressions with interaction term
-    p_values <- lapply(df_list, function(df){
-      if(subgroups_length == 2){
-        if(regression_method == "lm"){
-          # gene_B ~ gene_A * subgroup
-          lmfit <- stats::lm(df[,2] ~ df[,1] * df[,3])
-          p_interaction <- stats::coef(summary(lmfit))[4,4]
+      # calculate regressions with interaction term
+      p_values <- lapply(df_list, function(df){
+        if(subgroups_length == 2){
+          if(regression_method == "lm"){
+            # gene_B ~ gene_A * subgroup
+            lmfit <- stats::lm(df[,2] ~ df[,1] * df[,3])
+            p_interaction <- stats::coef(summary(lmfit))[4,4]
+          }
+          if(regression_method == "rlm"){
+            # gene_B ~ gene_A * subgroup
+            robustfit <- MASS::rlm(df[,2] ~ df[,1] * df[,3])
+            p_interaction <- sfsmisc::f.robftest(robustfit, var=3)$p.value
+          }
+          output <- data.frame(from = colnames(df)[1], to = colnames(df)[2],
+                               p.value = p_interaction)
         }
-        if(regression_method == "rlm"){
+        if(subgroups_length >= 3){
+          # one-way ANOVA
           # gene_B ~ gene_A * subgroup
-          robustfit <- MASS::rlm(df[,2] ~ df[,1] * df[,3])
-          p_interaction <- sfsmisc::f.robftest(robustfit, var=3)$p.value
+          res_aov <- stats::aov(df[,2] ~ df[,1] * df[,3], data = df)
+          p_interaction <- summary(res_aov)[[1]][["Pr(>F)"]][3]
+          output <- data.frame(from = colnames(df)[1], to = colnames(df)[2],
+                               p.value = p_interaction)
         }
-        output <- data.frame(from = colnames(df)[1], to = colnames(df)[2],
-                             p.value = p_interaction)
+        return(output)
+      })
+    } else {
+      p_values <- "No specific links for this subgroup."
       }
-      if(subgroups_length >= 3){
-        # one-way ANOVA
-        # gene_B ~ gene_A * subgroup
-        res_aov <- stats::aov(df[,2] ~ df[,1] * df[,3], data = df)
-        p_interaction <- summary(res_aov)[[1]][["Pr(>F)"]][3]
-        output <- data.frame(from = colnames(df)[1], to = colnames(df)[2],
-                             p.value = p_interaction)
-      }
-      return(output)
-    })
-  } else {p_values <- "No specific links for this subgroup."}
+    } else {
+      p_values <- "No specific links for this subgroup."
+    }
 
   if(class(p_values) == "list"){
     # make a data frame with all values
