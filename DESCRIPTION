@@ -28,7 +28,6 @@ Imports:
    dplyr,
    DT,
    ellipsis (>= 0.3.2),
-   gtools,
    igraph, 
    MASS,
    magrittr,
