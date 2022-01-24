@@ -482,7 +482,11 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
       # adding Storey's q-values
       q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
       if (class(q.values) == "try-error") {
-        q.values <-  qvalue::qvalue(p = p_values[, "p.value"], pi0 = 1)$qvalues
+        if(nrow(p_values > 1))(
+          q.values <-  qvalue::qvalue(p = p_values[, "p.value"], pi0 = 1)$qvalues
+        ) else (
+          q.values <- NA
+        )
       }
       p_values$q.value <- q.values
     }
