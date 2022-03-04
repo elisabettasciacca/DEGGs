@@ -23,7 +23,7 @@ in \code{normalised_counts}.}
 subgroup definition for each sample in \code{normalised_counts}.}
 
 \item{\code{regression_method}}{the chosen regression method used to calculate
-interaction p-values. It can be either 'rlm' or 'lm'.}
+interaction p values. It can be either 'rlm' or 'lm'.}
 
 \item{\code{subgroups}}{character vector indicating which subgroups
 are used for comparison.}

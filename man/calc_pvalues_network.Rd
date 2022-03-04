@@ -26,7 +26,7 @@ of samples}
 inside metadata the dataframe}
 
 \item{regression_method}{whether to use robust linear modeling for the
-interaction p-values. Options are 'rlm' (default) or 'lm'}
+interaction p values. Options are 'rlm' (default) or 'lm'}
 
 \item{subgroups_length}{An integer number that represent the number
 of subgroups}

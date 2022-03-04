@@ -26,7 +26,7 @@ calc_pvalues_percentile(
 \item{combinations}{dataframe containing the subgroups combinations in rows}
 
 \item{regression_method}{whether to use robust linear modeling for the
-interaction p-values. Options are 'rlm' (default) or 'lm'}
+interaction p values. Options are 'rlm' (default) or 'lm'}
 
 \item{edges}{A dataframe of the meta pathway edges}
 

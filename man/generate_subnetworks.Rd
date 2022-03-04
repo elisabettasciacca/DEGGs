@@ -13,7 +13,7 @@ generate_subnetworks(
   network = NULL,
   entrezIDs = FALSE,
   convert_to_gene_symbols = TRUE,
-  use_qvalues = TRUE,
+  use_qvalues = FALSE,
   cores = parallel::detectCores()/2
 )
 }
@@ -29,7 +29,7 @@ Objects of class \code{matrix} are not allowed.}
 subgroup definition for each sample in \code{normalised_counts}}
 
 \item{regression_method}{whether to use robust linear modeling for the
-interaction p-values. Options are 'rlm' (default) or 'lm'}
+interaction p values. Options are 'rlm' (default) or 'lm'}
 
 \item{subgroups}{optional character vector indicating which subgroups
 are used for comparison. If not specified, all subgroups in
@@ -41,8 +41,8 @@ entrez id (TRUE) or gene symbols (FALSE). Default FALSE}
 \item{convert_to_gene_symbols}{Logical to be used when using entrez ids.
 If TRUE (default), the output will show gene symbols}
 
-\item{use_qvalues}{Whether to use Storey's q-values. If FALSE, unadjusted
-p-values will be used.}
+\item{use_qvalues}{Whether to use Storey's q values for multiple test
+adjustment. If FALSE (default), unadjusted p values will be used.}
 
 \item{cores}{Number of cores to use.}
 }

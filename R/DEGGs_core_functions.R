@@ -24,7 +24,7 @@ setClass("Deggs", slots = list(
 
 
 
-#' Generate subnetworsk
+#' Generate subnetworks
 #'
 #' Generate subgroup specific gene-gene interaction networks with interaction
 #' pvalues
