@@ -10,7 +10,7 @@ calc_pvalues_percentile(
   metadata,
   percentile,
   subgroups_df_list,
-  permutations,
+  combinations,
   regression_method = "rlm",
   edges,
   subgroup_variable,
@@ -23,7 +23,7 @@ calc_pvalues_percentile(
 
 \item{subgroups_df_list}{list of subgroup dataframes}
 
-\item{permutations}{dataframe containing the subgroups permutations in rows}
+\item{combinations}{dataframe containing the subgroups combinations in rows}
 
 \item{regression_method}{whether to use robust linear modeling for the
 interaction p-values. Options are 'rlm' (default) or 'lm'}

@@ -4,12 +4,9 @@
 \alias{View_interactive_subnetwork}
 \title{Interactive shiny app to visualise subnetworks}
 \usage{
-View_interactive_subnetwork(deggs_object, subgroup, use_qvalues = TRUE)
+View_interactive_subnetwork(deggs_object)
 }
 \arguments{
-\item{subgroup}{the subgroup of interest: the associated network will be
-visualised}
-
 \item{Deggs_object}{an object of class Deggs generated from
 \code{generate_subnetworks}}
 }

@@ -29,7 +29,7 @@ inside metadata the dataframe}
 interaction p-values. Options are 'rlm' (default) or 'lm'}
 
 \item{subgroups_length}{An integer number that represent the number
-of subgroups inside the metadata dataframe}
+of subgroups}
 }
 \value{
 The list of pvalues

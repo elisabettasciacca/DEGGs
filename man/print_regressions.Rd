@@ -2,15 +2,9 @@
 % Please edit documentation in R/DEGGs_printing_functions.R
 \name{print_regressions}
 \alias{print_regressions}
-\title{Print the regression graph of a specific genes}
+\title{Plot regressions for a specific gene-gene interaction}
 \usage{
-print_regressions(
-  deggs_object,
-  gene_A,
-  gene_B,
-  use_qvalues = TRUE,
-  legend_position = "topright"
-)
+print_regressions(deggs_object, gene_A, gene_B, legend_position = "topright")
 }
 \arguments{
 \item{gene_A}{A string of gene selected}
@@ -35,10 +29,10 @@ are used for comparison. If not specified, all subgroups in
 \code{subgroup_variable} will be considered}
 }
 \value{
-base graphics plot showing gene-gene regressions for each subgroup
-while the pvalue of the interaction term of
+base graphics plot showing gene-gene regressions for each subgroup.
+The p-value of the interaction term of
 \emph{gene A ~ gene B \} subgroup* is reported on top
 }
 \description{
-Print the regression graph of a specific genes
+Plot regressions for a specific gene-gene interaction
 }

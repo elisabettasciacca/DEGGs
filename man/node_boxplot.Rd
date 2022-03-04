@@ -4,7 +4,7 @@
 \alias{node_boxplot}
 \title{Boxplots of single nodes across subgroups}
 \usage{
-node_boxplot(gene)
+node_boxplot(gene, deggs_object)
 }
 \arguments{
 \item{gene}{gene name  (must be contained in rownames(normalised_counts))}

@@ -10,6 +10,7 @@ generate_subnetworks(
   subgroup_variable,
   regression_method = "rlm",
   subgroups = NULL,
+  network = NULL,
   entrezIDs = FALSE,
   convert_to_gene_symbols = TRUE,
   use_qvalues = TRUE,

@@ -9,7 +9,7 @@
 #' @slot subgroup_variable column name in `metadata` which contains the
 #' subgroup definition for each sample in `normalised_counts`.
 #' @slot regression_method the chosen regression method used to calculate
-#' interaction p-values. It can be either 'rlm' or 'lm'.
+#' interaction p values. It can be either 'rlm' or 'lm'.
 #' @slot subgroups character vector indicating which subgroups
 #' are used for comparison.
 setClass("Deggs", slots = list(
@@ -24,7 +24,7 @@ setClass("Deggs", slots = list(
 
 
 
-#' Generate subnetworks
+#' Generate subnetworsk
 #'
 #' Generate subgroup specific gene-gene interaction networks with interaction
 #' pvalues
@@ -37,7 +37,7 @@ setClass("Deggs", slots = list(
 #' @param subgroup_variable column name in `metadata` which contains the
 #' subgroup definition for each sample in `normalised_counts`
 #' @param regression_method whether to use robust linear modeling for the
-#' interaction p-values. Options are 'rlm' (default) or 'lm'
+#' interaction p values. Options are 'rlm' (default) or 'lm'
 #' @param subgroups optional character vector indicating which subgroups
 #' are used for comparison. If not specified, all subgroups in
 #' `subgroup_variable` will be considered
@@ -45,8 +45,8 @@ setClass("Deggs", slots = list(
 #' entrez id (TRUE) or gene symbols (FALSE). Default FALSE
 #' @param convert_to_gene_symbols Logical to be used when using entrez ids.
 #' If TRUE (default), the output will show gene symbols
-#' @param use_qvalues Whether to use Storey's q-values. If FALSE, unadjusted
-#' p-values will be used.
+#' @param use_qvalues Whether to use Storey's q values for multiple test
+#' adjustment. If FALSE (default), unadjusted p values will be used.
 #' @param cores Number of cores to use.
 #' @return a Deggs object with subgroup specific networks incorporating pvalues
 #' for each interaction
@@ -56,7 +56,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                                  network = NULL,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
-                                 use_qvalues = TRUE,
+                                 use_qvalues = FALSE,
                                  cores = parallel::detectCores()/2){
 
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
@@ -295,7 +295,7 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
 #' @param subgroups_df_list list of subgroup dataframes
 #' @param combinations dataframe containing the subgroups combinations in rows
 #' @param regression_method whether to use robust linear modeling for the
-#' interaction p-values. Options are 'rlm' (default) or 'lm'
+#' interaction p values. Options are 'rlm' (default) or 'lm'
 #' @param edges A dataframe of the meta pathway edges
 #' @param subgroup_variable A string that represent the column name of the subgroup
 #' inside metadata the dataframe
@@ -384,7 +384,7 @@ calc_pvalues_percentile <- function(normalised_counts,
                                 sig_var = sig_var))
   })
 
-  # count significant p-values
+  # count significant p values
   if(tot_edges > sig_edges_count){
     # num tot edges greater than previous sig edges count
     p_values_sig_count <- unlist(lapply(pvalues_list, function(subgroup_network){
@@ -421,7 +421,7 @@ calc_pvalues_percentile <- function(normalised_counts,
 #' @param subgroup_variable A string that represent the column name of the subgroup
 #' inside metadata the dataframe
 #' @param regression_method whether to use robust linear modeling for the
-#' interaction p-values. Options are 'rlm' (default) or 'lm'
+#' interaction p values. Options are 'rlm' (default) or 'lm'
 #' @param subgroups_length An integer number that represent the number
 #' of subgroups
 #' @return The list of pvalues
@@ -479,7 +479,7 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
     p_values$to <- as.character(p_values$to)
 
     if(sig_var == "q.value"){
-      # adding Storey's q-values
+      # adding Storey's q values
       q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
       if (class(q.values) == "try-error") {
         if(nrow(p_values > 1))(
@@ -497,4 +497,34 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
   }
 
   return(p_values)
+}
+
+
+#' Output a table of significant gene-gene interactions
+#'
+#' @param deggs_object an object of class Deggs generated from
+#' `generate_subnetworks`
+#' @return A dataframe listing all the significant gene-gene interactions found
+#' across subgroups.
+#' This can be used as features selection method when building machine learning
+#' models for the prediction of the subgroups.
+#' @export
+extract_sig_deggs <- function(deggs_object){
+  use_qvalues <- deggs_object@use_qvalues
+  sig_var <- ifelse(use_qvalues, "q.value", "p.value")
+
+  counts   <- deggs_object@normalised_counts
+  metadata <- deggs_object@metadata
+  subgroup_variable <- deggs_object@subgroup_variable
+  model <- deggs_object@regression_method
+  # extracting subnetworks (we just need to exclude sig_pvalues_count from the list)
+  condition <- lapply(deggs_object@subnetworks, is.list)
+  subnetworks_list <- deggs_object@subnetworks[unlist(condition)]
+
+  # exrtact all significant gene pairs (from any subgroup),
+  # these will be tested for prediction
+  sig.edges <- lapply(subnetworks_list, function(subnetwork){
+    subnetwork <- subnetwork[which(subnetwork[, sig_var] < 0.05), ]
+  })
+  sig.edges <- do.call(rbind, sig.edges)
 }

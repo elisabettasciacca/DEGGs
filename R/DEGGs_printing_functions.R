@@ -1,65 +1,4 @@
-#' View subnetworks in basic igraph style
-#'
-#' View igraph style networks for a specific subgroup
-#'
-#' @param deggs_object an object of class Deggs generated from
-#' `generate_subnetworks`
-#' @param subgroup the subgroup of interest. The associated network will be
-#' visualised
-#' @return an igraph plot of the selected subnetwork
-#' @export
-print_simple_network <- function(deggs_object, subgroup){
-  network <- deggs_object@subnetworks[[subgroup]]
-  colnames(network)[3] <- "weight"
-  # ES: TODO: add vertex names
-  network <- unique(network)
-  network$color <- ifelse(network$weight >= 0.05, "gray", "blue")
-  g <- igraph::graph.data.frame(d = network, directed = FALSE)
-  plot(g, vertex.size = 3, vertex.label = NA, edge.width = igraph::E(g)$width)
-}
-
-
-#' View subnetworks in network3D style
-#'
-#' View network3D style networks for a specific subgroup
-#'
-#' @param Deggs_object an object of class Deggs generated from
-#' `generate_subnetworks`
-#' @param subgroup the subgroup of interest. The associated network will be
-#' visualised
-#' @return a network3D plot of the selected subnetwork
-#' @export
-print_force_network <- function(deggs_object, subgroup){
-  network <- deggs_object@subnetworks[[subgroup]]
-  nodes <- data.frame("name" = unique(c(network$from, network$to)))
-  nodes$ID <- 0:(nrow(nodes)-1) # assign sequential IDs to nodes
-  network <- merge(nodes, network, by.x = "name", by.y = "from")
-  network <- dplyr::rename(network, source = ID)
-  network <- merge(nodes, network, by.x = "name", by.y = "to")
-  network <- dplyr::rename(network, target = ID)
-  #network <- dplyr::rename(network, value = p.value)
-  network$value <- 1
-  network$name   <- NULL
-  network$name.y <- NULL
-  nodes$group <- 1
-
-
-  networkD3::forceNetwork(Links = network, Nodes = nodes,
-                          Source = 'source',
-                          Target = 'target',
-                          NodeID = 'name',
-                          Group = "group",
-                          Value = "value",
-                          arrows = TRUE,
-                          linkColour = ifelse(network$p.value >= 0.05, "gray", "red"),
-                          #linkWidth = networkD3::JS("function(d) { return d; }"),
-                          opacity = 1,
-                          opacityNoHover = 0.8,
-                          zoom = TRUE)
-}
-
-
-#' Print the regression graph of a specific genes
+#' Plot regressions for a specific gene-gene interaction
 #'
 #' @param Deggs_object an object of class Deggs generated from
 #' `generate_subnetworks`
@@ -75,17 +14,16 @@ print_force_network <- function(deggs_object, subgroup){
 #' @param legend_position posion of the legend in the plot. It can be
 #' specified by keyword or in any way which is accepted by `xy.coords` (defalut
 #' "topright")
-#' @return base graphics plot showing gene-gene regressions for each subgroup
-#' while the pvalue of the interaction term of
+#' @return base graphics plot showing gene-gene regressions for each subgroup.
+#' The p-value of the interaction term of
 #' *gene A ~ gene B \* subgroup* is reported on top
 #' @export
 print_regressions <- function (deggs_object,
                                gene_A,
                                gene_B,
-                               use_qvalues = TRUE,
                                legend_position = "topright"){
 
-  use_qvalues <- subnetworks_object@use_qvalues
+  use_qvalues <- deggs_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
@@ -178,7 +116,9 @@ print_regressions <- function (deggs_object,
                                             all_interactions$to == gene_B),
                                        sig_var]
 
-  sig_interaction <- ifelse(use_qvalues, Padj_interaction, p_interaction)
+  sig_interaction <- ifelse(subnetworks_object@use_qvalues,
+                            Padj_interaction,
+                            p_interaction)
 
   op <- par(mar = c(5.2, 6, 3.3, 5), xpd = TRUE)
   plot(df[,1], df[,2], type = 'n', bty = 'l', las = 1, cex.axis = 1.1,
@@ -329,6 +269,14 @@ View_interactive_subnetwork <- function(deggs_object){
                              color = list("inherit" = FALSE)) %>%
 
         visNetwork::visLayout(randomSeed = 12) %>% # to have always the same network
+        visNetwork::visLegend(useGroups = FALSE,
+                              position = 'right',
+                              addEdges = data.frame(color = c("gray", "royalblue"),
+                                                    label = c("not significant", "significant"),
+                                                    font.align = "top",
+                                                    font.size = 9),
+                              stepY = 50, width = 0.15,
+                              zoom = FALSE) %>%
         visNetwork::visOptions(highlightNearest = TRUE)  %>%
         visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20)  %>%
         visNetwork::visEvents(select = "function(data) {
@@ -346,19 +294,18 @@ View_interactive_subnetwork <- function(deggs_object){
     # Plot
     output$edge_or_node_plot <-  shiny::renderPlot({
       edges <- deggs_object@subnetworks[[input$subgroup]]
-    try(
+    # try(
       if(is.null(input$current_nodes_selection) &
          length(input$current_edges_selection) == 1) {
 
           print_regressions(gene_A = edges[input$current_edges_selection, "from"],
                             gene_B = edges[input$current_edges_selection, "to"],
-                            deggs_object = subnetworks_object,
-                            use_qvalues = use_qvalues)
+                            deggs_object = subnetworks_object)
             } else {
               req(input$current_nodes_selection != "")
               node_boxplot(input$current_nodes_selection, deggs_object = subnetworks_object)
-            },
-      silent = TRUE)
+            }
+      # ,silent = TRUE)
     })
 
     # Highligh the searched node in the network
@@ -419,10 +366,17 @@ View_interactive_subnetwork <- function(deggs_object){
 
       shiny::mainPanel(
         visNetwork::visNetworkOutput("network",
-                                     height = "700px", width = "900px")
+                                     height = "700px", width = "800px")
       )
-    )
-  )
+    ),
+    shiny::tags$script(shiny::HTML("$(function() {
+              $('#searchText').keypress(function(e) {
+              if (e.which == 13) {
+                $('#searchButton').click();
+              }
+              });
+    });"))
+   )
   shiny::shinyApp(ui = ui, server = server)
 }
-
+View_interactive_subnetwork(subnetworks_object)
