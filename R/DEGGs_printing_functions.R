@@ -379,4 +379,3 @@ View_interactive_subnetwork <- function(deggs_object){
    )
   shiny::shinyApp(ui = ui, server = server)
 }
-View_interactive_subnetwork(subnetworks_object)
