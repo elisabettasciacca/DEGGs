@@ -199,90 +199,101 @@ View_interactive_subnetwork <- function(deggs_object){
   server <- function(input, output, session) {
 
     outVar = reactive({
-      deggs_object@subnetworks[[input$subgroup]]
+      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame")(
+        deggs_object@subnetworks[[input$subgroup]]
+      ) else (
+        data.frame("from" = NA, "to" = NA, "p.value" = 1, "q.value" = 1)
+      )
     })
-
     nodes_selection <- shiny::reactiveValues(current_node = NULL)
 
     # Set up reactive table
     edges <- reactive({
-      edges <- deggs_object@subnetworks[[input$subgroup]]
-      edges <- edges[edges[, sig_var] < input$slider, ]
-      edges$id <- rownames(edges)
+      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+        edges <- deggs_object@subnetworks[[input$subgroup]]
+        edges <- edges[edges[, sig_var] < input$slider, ]
+        edges$id <- rownames(edges)
 
-      if(use_qvalues) (
-        edges$`q value` <- formatC(edges$q.value, format = "e", digits = 3)
-      ) else (
-        edges$`p value` <- formatC(edges$p.value, format = "e", digits = 3)
-      )
-      if (!is.null(nodes_selection$current_node))(
-        DT::datatable(edges %>%
-                        dplyr::filter(from %in% nodes_selection$current_node |
-                                        to   %in% nodes_selection$current_node),
-                      options = list(lengthChange = FALSE, scrollX = T,
-                                     columnDefs = list(list(visible=FALSE,
-                                                            targets=c(3:4)))),
-                      rownames = TRUE)
-      ) else if (length(input$current_edges_selection) != 0)(
-        DT::datatable(edges %>%
-                        dplyr::filter(id %in% input$current_edges_selection),
-                      options = list(lengthChange = FALSE, scrollX = T,
-                                     columnDefs = list(list(visible=FALSE,
-                                                            targets=c(3:4)))),
-                      rownames = TRUE)
-      )
+        if(use_qvalues) (
+          edges$`q value` <- formatC(edges$q.value, format = "e", digits = 3)
+        ) else (
+          edges$`p value` <- formatC(edges$p.value, format = "e", digits = 3)
+        )
+        if (!is.null(nodes_selection$current_node))(
+          DT::datatable(edges %>%
+                          dplyr::filter(from %in% nodes_selection$current_node |
+                                          to %in% nodes_selection$current_node),
+                        options = list(lengthChange = FALSE, scrollX = T,
+                                       columnDefs = list(list(visible=FALSE,
+                                                              targets=c(3:4)))),
+                        rownames = TRUE)
+        ) else if (length(input$current_edges_selection) != 0)(
+          DT::datatable(edges %>%
+                          dplyr::filter(id %in% input$current_edges_selection),
+                        options = list(lengthChange = FALSE, scrollX = T,
+                                       columnDefs = list(list(visible=FALSE,
+                                                              targets=c(3:4)))),
+                        rownames = TRUE)
+        )
+      }
       })
 
     # Network
     output$network <- visNetwork::renderVisNetwork({
+      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+        edges <- deggs_object@subnetworks[[input$subgroup]]
+        edges$id <- rownames(edges)
 
-      edges <- deggs_object@subnetworks[[input$subgroup]]
-      edges$id <- rownames(edges)
+        # Set up tooltip
+        prefix <- ifelse(use_qvalues == TRUE, "Padj=", "P=")
+        edges$title <- paste0(prefix,
+                              formatC(edges[, sig_var], format = "e", digits = 2) )
 
-      # Set up tooltip
-      prefix <- ifelse(use_qvalues == TRUE, "Padj=", "P=")
-      edges$title <- paste0(prefix,
-                            formatC(edges[, sig_var], format = "e", digits = 2) )
+        # Set up edges width
+        # normalise p value between 0 and 1
+        edges$width <- edges[, sig_var] - min(edges[, sig_var]) /
+          (max(edges[, sig_var]) - min(edges[, sig_var]))
+        # invert values (and multiply by 4 to increase width)
+        edges$width <- (1 - edges$width) * 4
 
-      # Set up edges width
-      # normalise p value between 0 and 1
-      edges$width <- edges[, sig_var] - min(edges[, sig_var]) /
-        (max(edges[, sig_var]) - min(edges[, sig_var]))
-      # invert values (and multiply by 4 to increase width)
-      edges$width <- (1 - edges$width) * 4
+        # Set up edges color
+        edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
 
-      # Set up edges color
-      edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
+        # Slider
+        edges <- edges[edges[, sig_var] < input$slider, ]
 
-      # Slider
-      edges <- edges[edges[, sig_var] < input$slider, ]
+        nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
+                            "label" = unique(c(edges$from, edges$to)),
+                            "title" = unique(c(edges$from, edges$to)))
 
-      nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
-                          "label" = unique(c(edges$from, edges$to)),
-                          "title" = unique(c(edges$from, edges$to)))
+        visNetwork::visNetwork(nodes, edges) %>%
+          visNetwork::visIgraphLayout(physics = TRUE, smooth = TRUE, type = "full") %>%
+          visNetwork::visNodes(color = list("border" = 'white'),
+                               font = list("size" = 16)) %>%
+          visNetwork::visEdges(arrows ="to",
+                               color = list("inherit" = FALSE)) %>%
 
-      visNetwork::visNetwork(nodes, edges) %>%
-        visNetwork::visIgraphLayout(physics = TRUE, smooth = TRUE, type = "full") %>%
-        visNetwork::visNodes(color = list("border" = 'white'),
-                             font = list("size" = 16)) %>%
-        visNetwork::visEdges(arrows ="to",
-                             color = list("inherit" = FALSE)) %>%
-
-        visNetwork::visLayout(randomSeed = 12) %>% # to have always the same network
-        visNetwork::visLegend(useGroups = FALSE,
-                              position = 'right',
-                              addEdges = data.frame(color = c("gray", "royalblue"),
-                                                    label = c("not significant", "significant"),
-                                                    font.align = "top",
-                                                    font.size = 9),
-                              stepY = 50, width = 0.15,
-                              zoom = FALSE) %>%
-        visNetwork::visOptions(highlightNearest = TRUE)  %>%
-        visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20)  %>%
-        visNetwork::visEvents(select = "function(data) {
+          visNetwork::visLayout(randomSeed = 12) %>% # to have always the same network
+          visNetwork::visLegend(useGroups = FALSE,
+                                position = 'right',
+                                addEdges = data.frame(color = c("gray", "royalblue"),
+                                                      label = c("not significant", "significant"),
+                                                      font.align = "top",
+                                                      font.size = 9),
+                                stepY = 50, width = 0.15,
+                                zoom = FALSE) %>%
+          visNetwork::visOptions(highlightNearest = TRUE)  %>%
+          visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20)  %>%
+          visNetwork::visEvents(select = "function(data) {
                 Shiny.onInputChange('current_nodes_selection', data.nodes);
                 Shiny.onInputChange('current_edges_selection', data.edges);
                 ;}")
+      } else {
+        nodes <- data.frame()
+        edges <- data.frame()
+        network.title = "No specific gene-gene interaction for this subgroup"
+        visNetwork::visNetwork(nodes, edges, main = network.title)
+      }
     })
 
 
@@ -310,18 +321,20 @@ View_interactive_subnetwork <- function(deggs_object){
 
     # Highligh the searched node in the network
     observe({
-      if(input$searchButton > 0){
-        isolate({
-          edges <- deggs_object@subnetworks[[input$subgroup]]
-          nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
-                              "label" = unique(c(edges$from, edges$to)),
-                              "title" = unique(c(edges$from, edges$to)))
+      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+        if(input$searchButton > 0){
+          isolate({
+            edges <- deggs_object@subnetworks[[input$subgroup]]
+            nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
+                                "label" = unique(c(edges$from, edges$to)),
+                                "title" = unique(c(edges$from, edges$to)))
 
-          nodes_selection$current_node <- nodes[grep(input$searchText, nodes$label,
-                                     ignore.case = TRUE), "id"]
-          visNetwork::visNetworkProxy("network") %>%
-            visNetwork::visSelectNodes(id  = nodes_selection$current_node )
-        })
+            nodes_selection$current_node <- nodes[grep(input$searchText, nodes$label,
+                                                       ignore.case = TRUE), "id"]
+            visNetwork::visNetworkProxy("network") %>%
+              visNetwork::visSelectNodes(id  = nodes_selection$current_node )
+          })
+        }
       }
     })
 
@@ -345,7 +358,7 @@ View_interactive_subnetwork <- function(deggs_object){
                            choices = levels(deggs_object@metadata[, deggs_object@subgroup_variable]),
                            selected = levels(deggs_object@metadata[, deggs_object@subgroup_variable])[1]),
 
-        # Slider
+       # Slider
         shiny::sliderInput("slider",
                     label = ifelse(use_qvalues, "q values", "p values"),
                     min = 0.01,
