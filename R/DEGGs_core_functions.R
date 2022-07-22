@@ -168,7 +168,6 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
 
     parallel::clusterEvalQ(cl, {
       library("dplyr")
-      library("edgeR")
     })
     pvalues_list <- pbapply::pblapply(cl = cl, percentile_vector, function(percentile){
       calc_pvalues_percentile(normalised_counts = normalised_counts,
