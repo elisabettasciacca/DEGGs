@@ -167,7 +167,6 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                         "sig_edges_count", "sig_var"), envir = environment())
 
     parallel::clusterEvalQ(cl, {
-      library("igraph")
       library("dplyr")
       library("edgeR")
     })
@@ -413,9 +412,8 @@ calc_pvalues_percentile <- function(normalised_counts,
 
 #' Calculate the pvalues for specific subgroup network samples
 #'
-#' @param subgroup_network A igraph network related to a specific subgroup samples
-#' @param normalised_counts A dataframe that represent the gene expressions
-#' of samples
+#' @param subgroup_network A network related to a specific subgroup samples
+#' @param normalised_counts A dataframe with gene expressions
 #' @param metadata A dataframe that represent the subgroup of samples
 #' @param subgroup_variable A string that represent the column name of the subgroup
 #' inside metadata the dataframe
