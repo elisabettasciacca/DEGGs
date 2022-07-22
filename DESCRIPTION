@@ -35,20 +35,20 @@ Language: en-gb
 URL: https://github.com/elisabettasciacca/DEGGs
 BugReports: https://github.com/elisabettasciacca/DEGGs/issues
 Suggests: 
-    AnnotationDbi,
-    knitr,
-    org.Hs.eg.db,
-    rmarkdown
 Imports:
+   AnnotationDbi,
    dplyr,
    DT,
    ellipsis (>= 0.3.2),
+   knitr,
    MASS,
    magrittr,
+   org.Hs.eg.db,
    parallel,
    pbapply,
    pbmcapply,
    qvalue,
+   rmarkdown,
    sfsmisc,
    shiny,
    shinydashboard,
