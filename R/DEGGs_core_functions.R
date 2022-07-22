@@ -170,7 +170,6 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
       library("igraph")
       library("dplyr")
       library("edgeR")
-      library("networkD3")
     })
     pvalues_list <- pbapply::pblapply(cl = cl, percentile_vector, function(percentile){
       calc_pvalues_percentile(normalised_counts = normalised_counts,
