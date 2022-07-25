@@ -7,12 +7,12 @@
 View_interactive_subnetwork(deggs_object)
 }
 \arguments{
-\item{Deggs_object}{an object of class Deggs generated from
+\item{deggs_object}{an object of class \code{deggs} generated from
 \code{generate_subnetworks}}
 }
 \value{
-a network plot with selectable nodes and links
+a shiny interface showing networks with selectable nodes and links
 }
 \description{
-Explore subnetworks and interactively select regression plots
+Explore subnetworks and interactively select regression and box plots
 }

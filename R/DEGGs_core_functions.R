@@ -1,25 +1,28 @@
-#' An S4 class to define the Deggs output
+#' An S4 class to define the deggs output
 #'
-#' @slot subnetworks a list of specific networks in the form of tables (data.frame),
-#' and the count of significant interactions
-#' @slot normalised_counts a data frame containig the normalised tidied
-#' count data.
-#' @slot metadata a tidied data frame of sample information matching sample IDs
-#' in `normalised_counts`.
-#' @slot subgroup_variable column name in `metadata` which contains the
+#' @slot subnetworks a list of data frames containing the subgroup networks and
+#' a number indicating the total count of links that reached significance in all
+#' subgroups (considering p or adj p < 0.05)
+#' @slot normalised_counts a data frame containig the normalised count data
+#' given in input.
+#' @slot metadata a data frame of sample data given in input and matching
+#' the sample IDs in `normalised_counts`.
+#' @slot subgroup_variable column name in `metadata` that contains the
 #' subgroup definition for each sample in `normalised_counts`.
 #' @slot regression_method the chosen regression method used to calculate
 #' interaction p values. It can be either 'rlm' or 'lm'.
 #' @slot subgroups character vector indicating which subgroups
 #' are used for comparison.
-setClass("Deggs", slots = list(
-  subnetworks       = "list",
-  normalised_counts = "data.frame",
-  metadata          = "data.frame",
-  subgroup_variable = "character",
-  regression_method = "character",
-  subgroups         = "character",
-  use_qvalues       = "logical"
+#' @slot use_qvalues logical. Indicates whether p values are adjusted via
+#' Storey's q value method
+setClass("deggs", slots = list(
+                  subnetworks       = "list",
+                  normalised_counts = "data.frame",
+                  metadata          = "data.frame",
+                  subgroup_variable = "character",
+                  regression_method = "character",
+                  subgroups         = "character",
+                  use_qvalues       = "logical"
 ))
 
 
@@ -27,32 +30,45 @@ setClass("Deggs", slots = list(
 #' Generate subnetworks
 #'
 #' Generate subgroup specific gene-gene interaction networks with interaction
-#' pvalues
+#' p values
 #'
-#' @param normalised_counts a data frame containig the normalised sequencing
-#' count data. Sample IDs must be in columns and gene/miRNA/TFs in rows.
+#' @param normalised_counts a data frame containing normalised counts from an
+#' high throughput sequencing experiment.
+#' Sample IDs must be in columns and gene/miRNA/TFs in rows.
 #' Objects of class `matrix` are not allowed.
-#' @param metadata a data frame of sample information matching the sample IDs in
-#' `normalised_counts`
-#' @param subgroup_variable column name in `metadata` which contains the
-#' subgroup definition for each sample in `normalised_counts`
-#' @param regression_method whether to use robust linear modeling for the
-#' interaction p values. Options are 'rlm' (default) or 'lm'
+#' @param metadata a data frame of sample data with rownames matching the
+#' sample IDs in `normalised_counts` colnames
+#' @param subgroup_variable column name in `metadata` that contains the
+#' subgroup identifier for each sample in `normalised_counts`
+#' @param regression_method whether to use robust linear modelling to calculate
+#' link p values. Options are 'rlm' (default) or 'lm'.
 #' @param subgroups optional character vector indicating which subgroups
-#' are used for comparison. If not specified, all subgroups in
-#' `subgroup_variable` will be considered
-#' @param entrezIDs Logical whether gene ids in `normalised_counts` are in
-#' entrez id (TRUE) or gene symbols (FALSE). Default FALSE
-#' @param convert_to_gene_symbols Logical to be used when using entrez ids.
-#' If TRUE (default), the output will show gene symbols
-#' @param use_qvalues Whether to use Storey's q values for multiple test
-#' adjustment. If FALSE (default), unadjusted p values will be used.
-#' @param cores Number of cores to use.
-#' @return a Deggs object with subgroup specific networks incorporating pvalues
-#' for each interaction
+#' must be used for comparison. If not specified, all subgroups in
+#' `subgroup_variable` will be used.
+#' @param network network of biological interactions provided by the user. The 
+#' network must be provided in the form of a table of class data.frame with two 
+#' columns named "from" and "to". 
+#' If NULL (default) a network of 10,537 molecular interactions obtained from
+#' KEGG, mirTARbase, miRecords and transmiR will be used.
+#' This has been obtained via the `exportgraph` function of the MITHrIL tool
+#' (Alaimo et al., 2016). 
+#' @param entrezIDs logical (default FALSE) used to define whether gene ids in
+#'  `normalised_counts` are entrez ids (TRUE) or gene symbols (FALSE).
+#' @param convert_to_gene_symbols logical to be used when using entrez ids.
+#' If TRUE (default), the output will show gene symbols.
+#' @param use_qvalues whether to use Storey's q values for multiple test
+#' adjustment. If FALSE (default), unadjusted p values will be used and shown
+#' in the output.
+#' @param cores number of cores to use.
+#' @return a `deggs` object containing subgroup specific networks incorporating
+#' p values or adjusted p values for each link. 
+#' @seealso [`deggs-class`].
 #' @export
-generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
-                                 regression_method = 'rlm', subgroups = NULL,
+generate_subnetworks <- function(normalised_counts,
+                                 metadata,
+                                 subgroup_variable,
+                                 regression_method = 'rlm',
+                                 subgroups = NULL,
                                  network = NULL,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
@@ -221,7 +237,7 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
                  "th percentile are removed from networks."))
   final_networks <- pvalues_list[[as.character(names(best_percentile))]]
 
-  degg <- new("Deggs",
+  degg <- new("deggs",
               subnetworks = final_networks,
               normalised_counts = normalised_counts,
               metadata = metadata,
@@ -234,18 +250,21 @@ generate_subnetworks <- function(normalised_counts, metadata, subgroup_variable,
 }
 
 
-#' Tidy metadata by removal of unwanted subgroup samples (if specified),
-#' subgroups with less than five samples, and NAs
+#' Tidying up of the metadata table. Samples belonging to unwanted subgroups 
+#' (if specified) will be removed as well as subgroups with less than five samples,
+#' and NAs. 
 #'
 #' @param subgroups optional character vector indicating which subgroups
 #' are used for comparison. If not specified, all subgroups in
-#' `subgroup_variable` will be considered
-#' @param metadata a data frame of sample information matching the sample IDs in
-#' `normalised_counts`
-#' @param subgroup_variable column name in `metadata` which contains the
-#' subgroup definition for each sample in `normalised_counts`
-#' @return tidied and aligned metadata
-tidy_metadata <- function(subgroups, metadata, subgroup_variable){
+#' `subgroup_variable` will be used.
+#' @param metadata a data frame of sample data with rownames matching the
+#' sample IDs in `normalised_counts` colnames.
+#' @param subgroup_variable column name in `metadata` that contains the
+#' subgroup identifier for each sample in `normalised_counts`.
+#' @return tidied and aligned metadata.
+tidy_metadata <- function(subgroups,
+                          metadata,
+                          subgroup_variable){
 
   # select specified subgroups (optional)
   if(!is.null(subgroups)) {
@@ -255,13 +274,13 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
     )
   }
 
-  # if subgroup_variable is not a factor, conver to factor
+  # if subgroup_variable is not a factor, convert to factor
   if(!is.factor(metadata[, subgroup_variable])){
     metadata[, subgroup_variable] <- as.factor(metadata[, subgroup_variable])
     message(paste0(subgroup_variable, " was converted to factor."))
   }
 
-  # remove subgroups of less than five observations
+  # remove subgroups with less than five observations
   # (regression would not be reliable enough)
   tbl <- table(metadata[, subgroup_variable])
   if (length(names(tbl)[tbl < 5]) > 0) {
@@ -286,31 +305,34 @@ tidy_metadata <- function(subgroups, metadata, subgroup_variable){
 }
 
 
-#' Compute interaction pvalues for a percentile
+#' Compute interaction p values for a single percentile value
 #'
-#' @param percentile A float number that represents the percentile
-#' @param subgroups_df_list list of subgroup dataframes
-#' @param combinations dataframe containing the subgroups combinations in rows
-#' @param regression_method whether to use robust linear modeling for the
-#' interaction p values. Options are 'rlm' (default) or 'lm'
-#' @param edges A dataframe of the meta pathway edges
-#' @param subgroup_variable A string that represent the column name of the subgroup
-#' inside metadata the dataframe
-#' @param subgroups_length An integer number that represent the number
-#' of subgroups inside the metadata dataframe
+#' @inheritParams generate_subnetworks
+#' @param subgroups_length integer number indicating the number of subgroups
+#' @param subgroups_df_list list of subgroup data frames
+#' @param sig_var Inherited from `generate_subnetworks`. It can be 
+#' `q.value` or `p.value` depending on how `use_qvalues` was set in the 
+#' `generate_subnetworks` function (default `FALSE`).
+#' @param percentile a float number indicating the percentile to use. 
+#' @param combinations data frame containing the subgroups combinations in rows
+#' @param regression_method whether to use robust linear modelling to obtain 
+#' p value of the interactions. Options are 'rlm' (default) or 'lm'
+#' @param edges network of biological interactions in the form of a table of 
+#' class data.frame with two columns: "from" and "to". 
+#' @param sig_edges_count number of significant edges (p < 0.05)
 #' @importFrom magrittr %>%
 #' @return The list of float numbers of the significant pvalues
 #' for a specific percentile
 calc_pvalues_percentile <- function(normalised_counts,
-                                    sig_var,
                                     metadata,
-                                    percentile,
+                                    subgroup_variable,
+                                    subgroups_length,
                                     subgroups_df_list,
+                                    sig_var,
+                                    percentile,
                                     combinations,
                                     regression_method = "rlm",
                                     edges,
-                                    subgroup_variable,
-                                    subgroups_length,
                                     sig_edges_count){
 
   # 1st filtering step (remove low expressed genes,
@@ -411,19 +433,16 @@ calc_pvalues_percentile <- function(normalised_counts,
 
 #' Calculate the pvalues for specific subgroup network samples
 #'
-#' @param subgroup_network A network related to a specific subgroup samples
-#' @param normalised_counts A dataframe with gene expressions
-#' @param metadata A dataframe that represent the subgroup of samples
-#' @param subgroup_variable A string that represent the column name of the subgroup
-#' inside metadata the dataframe
-#' @param regression_method whether to use robust linear modeling for the
-#' interaction p values. Options are 'rlm' (default) or 'lm'
-#' @param subgroups_length An integer number that represent the number
-#' of subgroups
-#' @return The list of pvalues
-calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
-                                 metadata, subgroup_variable,
-                                 regression_method = 'rlm', subgroups_length){
+#' @inheritParams calc_pvalues_percentile
+#' @param subgroup_network network table for a specific subgroup
+#' @return a list of p values
+calc_pvalues_network <- function(normalised_counts,
+                                 metadata,
+                                 sig_var,
+                                 subgroup_variable,
+                                 subgroups_length,
+                                 regression_method = 'rlm',
+                                 subgroup_network){
 
   if(class(subgroup_network) != "character"){
     if(nrow(subgroup_network) > 0){
@@ -496,15 +515,16 @@ calc_pvalues_network <- function(subgroup_network, normalised_counts, sig_var,
 }
 
 
-#' Output a table of significant gene-gene interactions
+#' Output a table of all the significant gene-gene interactions across subgroups
 #'
-#' @param deggs_object an object of class Deggs generated from
+#' @param deggs_object an object of class `deggs` generated from
 #' `generate_subnetworks`
-#' @return A dataframe listing all the significant gene-gene interactions found
-#' across subgroups.
+#' @return a `data.frame` listing all the significant gene-gene interactions 
+#' found across subgroups.
 #' This can be used as features selection method when building machine learning
 #' models for the prediction of the subgroups.
 #' @export
+#' @seealso [`deggs-class`].
 extract_sig_deggs <- function(deggs_object){
   use_qvalues <- deggs_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")

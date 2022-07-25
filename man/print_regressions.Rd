@@ -7,32 +7,25 @@
 print_regressions(deggs_object, gene_A, gene_B, legend_position = "topright")
 }
 \arguments{
-\item{gene_A}{A string of gene selected}
-
-\item{gene_B}{A string of gene selected}
-
-\item{legend_position}{posion of the legend in the plot. It can be
-specified by keyword or in any way which is accepted by \code{xy.coords} (defalut
-"topright")}
-
-\item{Deggs_object}{an object of class Deggs generated from
+\item{deggs_object}{an object of class \code{deggs} generated from
 \code{generate_subnetworks}}
 
-\item{subgroup_variable}{column name in \code{metadata} which contains the
-subgroup definition for each sample in \code{normalised_counts}}
+\item{gene_A}{character. Name of the first gene}
 
-\item{regression_method}{whether to use robust linear modeling for the
-interaction p-values. Options are 'rlm' (default) or 'lm'}
+\item{gene_B}{character. Name of the second gene}
 
-\item{subgroups}{optional character vector indicating which subgroups
-are used for comparison. If not specified, all subgroups in
-\code{subgroup_variable} will be considered}
+\item{legend_position}{position of the legend in the plot. It can be
+specified by keyword or in any way which is accepted by \code{xy.coords} (defalut
+"topright")}
 }
 \value{
-base graphics plot showing gene-gene regressions for each subgroup.
-The p-value of the interaction term of
-\emph{gene A ~ gene B \} subgroup* is reported on top
+base graphics plot showing gene-gene robust regressions for each
+subgroup. The p value of the interaction term of
+gene A ~ gene B \* subgroup is reported on top.
 }
 \description{
 Plot regressions for a specific gene-gene interaction
+}
+\seealso{
+\code{\linkS4class{deggs}}.
 }

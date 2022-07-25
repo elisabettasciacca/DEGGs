@@ -2,20 +2,23 @@
 % Please edit documentation in R/DEGGs_core_functions.R
 \name{extract_sig_deggs}
 \alias{extract_sig_deggs}
-\title{Output a table of significant gene-gene interactions}
+\title{Output a table of all the significant gene-gene interactions across subgroups}
 \usage{
 extract_sig_deggs(deggs_object)
 }
 \arguments{
-\item{deggs_object}{an object of class Deggs generated from
+\item{deggs_object}{an object of class \code{deggs} generated from
 \code{generate_subnetworks}}
 }
 \value{
-A dataframe listing all the significant gene-gene interactions found
-across subgroups.
+a \code{data.frame} listing all the significant gene-gene interactions
+found across subgroups.
 This can be used as features selection method when building machine learning
 models for the prediction of the subgroups.
 }
 \description{
-Output a table of significant gene-gene interactions
+Output a table of all the significant gene-gene interactions across subgroups
+}
+\seealso{
+\code{\linkS4class{deggs}}.
 }

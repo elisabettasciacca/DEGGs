@@ -2,44 +2,58 @@
 % Please edit documentation in R/DEGGs_core_functions.R
 \name{calc_pvalues_percentile}
 \alias{calc_pvalues_percentile}
-\title{Compute interaction pvalues for a percentile}
+\title{Compute interaction p values for a single percentile value}
 \usage{
 calc_pvalues_percentile(
   normalised_counts,
-  sig_var,
   metadata,
-  percentile,
+  subgroup_variable,
+  subgroups_length,
   subgroups_df_list,
+  sig_var,
+  percentile,
   combinations,
   regression_method = "rlm",
   edges,
-  subgroup_variable,
-  subgroups_length,
   sig_edges_count
 )
 }
 \arguments{
-\item{percentile}{A float number that represents the percentile}
+\item{normalised_counts}{a data frame containing normalised counts from an
+high throughput sequencing experiment.
+Sample IDs must be in columns and gene/miRNA/TFs in rows.
+Objects of class \code{matrix} are not allowed.}
 
-\item{subgroups_df_list}{list of subgroup dataframes}
+\item{metadata}{a data frame of sample data with rownames matching the
+sample IDs in \code{normalised_counts} colnames}
 
-\item{combinations}{dataframe containing the subgroups combinations in rows}
+\item{subgroup_variable}{column name in \code{metadata} that contains the
+subgroup identifier for each sample in \code{normalised_counts}}
 
-\item{regression_method}{whether to use robust linear modeling for the
-interaction p values. Options are 'rlm' (default) or 'lm'}
+\item{subgroups_length}{integer number indicating the number of subgroups}
 
-\item{edges}{A dataframe of the meta pathway edges}
+\item{subgroups_df_list}{list of subgroup data frames}
 
-\item{subgroup_variable}{A string that represent the column name of the subgroup
-inside metadata the dataframe}
+\item{sig_var}{Inherited from \code{generate_subnetworks}. It can be
+\code{q.value} or \code{p.value} depending on how \code{use_qvalues} was set in the
+\code{generate_subnetworks} function (default \code{FALSE}).}
 
-\item{subgroups_length}{An integer number that represent the number
-of subgroups inside the metadata dataframe}
+\item{percentile}{a float number indicating the percentile to use.}
+
+\item{combinations}{data frame containing the subgroups combinations in rows}
+
+\item{regression_method}{whether to use robust linear modelling to obtain
+p value of the interactions. Options are 'rlm' (default) or 'lm'}
+
+\item{edges}{network of biological interactions in the form of a table of
+class data.frame with two columns: "from" and "to".}
+
+\item{sig_edges_count}{number of significant edges (p < 0.05)}
 }
 \value{
 The list of float numbers of the significant pvalues
 for a specific percentile
 }
 \description{
-Compute interaction pvalues for a percentile
+Compute interaction p values for a single percentile value
 }

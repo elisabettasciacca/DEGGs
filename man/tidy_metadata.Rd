@@ -2,26 +2,28 @@
 % Please edit documentation in R/DEGGs_core_functions.R
 \name{tidy_metadata}
 \alias{tidy_metadata}
-\title{Tidy metadata by removal of unwanted subgroup samples (if specified),
-subgroups with less than five samples, and NAs}
+\title{Tidying up of the metadata table. Samples belonging to unwanted subgroups
+(if specified) will be removed as well as subgroups with less than five samples,
+and NAs.}
 \usage{
 tidy_metadata(subgroups, metadata, subgroup_variable)
 }
 \arguments{
 \item{subgroups}{optional character vector indicating which subgroups
 are used for comparison. If not specified, all subgroups in
-\code{subgroup_variable} will be considered}
+\code{subgroup_variable} will be used.}
 
-\item{metadata}{a data frame of sample information matching the sample IDs in
-\code{normalised_counts}}
+\item{metadata}{a data frame of sample data with rownames matching the
+sample IDs in \code{normalised_counts} colnames.}
 
-\item{subgroup_variable}{column name in \code{metadata} which contains the
-subgroup definition for each sample in \code{normalised_counts}}
+\item{subgroup_variable}{column name in \code{metadata} that contains the
+subgroup identifier for each sample in \code{normalised_counts}.}
 }
 \value{
-tidied and aligned metadata
+tidied and aligned metadata.
 }
 \description{
-Tidy metadata by removal of unwanted subgroup samples (if specified),
-subgroups with less than five samples, and NAs
+Tidying up of the metadata table. Samples belonging to unwanted subgroups
+(if specified) will be removed as well as subgroups with less than five samples,
+and NAs.
 }

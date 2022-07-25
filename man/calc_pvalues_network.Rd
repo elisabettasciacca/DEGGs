@@ -5,34 +5,40 @@
 \title{Calculate the pvalues for specific subgroup network samples}
 \usage{
 calc_pvalues_network(
-  subgroup_network,
   normalised_counts,
-  sig_var,
   metadata,
+  sig_var,
   subgroup_variable,
+  subgroups_length,
   regression_method = "rlm",
-  subgroups_length
+  subgroup_network
 )
 }
 \arguments{
-\item{subgroup_network}{A igraph network related to a specific subgroup samples}
+\item{normalised_counts}{a data frame containing normalised counts from an
+high throughput sequencing experiment.
+Sample IDs must be in columns and gene/miRNA/TFs in rows.
+Objects of class \code{matrix} are not allowed.}
 
-\item{normalised_counts}{A dataframe that represent the gene expressions
-of samples}
+\item{metadata}{a data frame of sample data with rownames matching the
+sample IDs in \code{normalised_counts} colnames}
 
-\item{metadata}{A dataframe that represent the subgroup of samples}
+\item{sig_var}{Inherited from \code{generate_subnetworks}. It can be
+\code{q.value} or \code{p.value} depending on how \code{use_qvalues} was set in the
+\code{generate_subnetworks} function (default \code{FALSE}).}
 
-\item{subgroup_variable}{A string that represent the column name of the subgroup
-inside metadata the dataframe}
+\item{subgroup_variable}{column name in \code{metadata} that contains the
+subgroup identifier for each sample in \code{normalised_counts}}
 
-\item{regression_method}{whether to use robust linear modeling for the
-interaction p values. Options are 'rlm' (default) or 'lm'}
+\item{subgroups_length}{integer number indicating the number of subgroups}
 
-\item{subgroups_length}{An integer number that represent the number
-of subgroups}
+\item{regression_method}{whether to use robust linear modelling to obtain
+p value of the interactions. Options are 'rlm' (default) or 'lm'}
+
+\item{subgroup_network}{network table for a specific subgroup}
 }
 \value{
-The list of pvalues
+a list of p values
 }
 \description{
 Calculate the pvalues for specific subgroup network samples

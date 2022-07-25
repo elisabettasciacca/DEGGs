@@ -1,23 +1,17 @@
 #' Plot regressions for a specific gene-gene interaction
 #'
-#' @param Deggs_object an object of class Deggs generated from
+#' @param deggs_object an object of class `deggs` generated from
 #' `generate_subnetworks`
-#' @param subgroup_variable column name in `metadata` which contains the
-#' subgroup definition for each sample in `normalised_counts`
-#' @param regression_method whether to use robust linear modeling for the
-#' interaction p-values. Options are 'rlm' (default) or 'lm'
-#' @param gene_A A string of gene selected
-#' @param gene_B A string of gene selected
-#' @param subgroups optional character vector indicating which subgroups
-#' are used for comparison. If not specified, all subgroups in
-#' `subgroup_variable` will be considered
-#' @param legend_position posion of the legend in the plot. It can be
+#' @param gene_A character. Name of the first gene  
+#' @param gene_B character. Name of the second gene
+#' @param legend_position position of the legend in the plot. It can be
 #' specified by keyword or in any way which is accepted by `xy.coords` (defalut
 #' "topright")
-#' @return base graphics plot showing gene-gene regressions for each subgroup.
-#' The p-value of the interaction term of
-#' *gene A ~ gene B \* subgroup* is reported on top
+#' @return base graphics plot showing gene-gene robust regressions for each 
+#' subgroup. The p value of the interaction term of
+#' gene A ~ gene B \* subgroup is reported on top.
 #' @export
+#' @seealso [`deggs-class`].
 print_regressions <- function (deggs_object,
                                gene_A,
                                gene_B,
@@ -32,8 +26,8 @@ print_regressions <- function (deggs_object,
   regression_method <- deggs_object@regression_method
 
   # integrity checks
-  if(class(deggs_object) != "Deggs"){
-    stop("deggs_object must be of class Deggs")
+  if(class(deggs_object) != "deggs"){
+    stop("deggs_object must be of class deggs")
   }
 
   if(!gene_A %in% rownames(deggs_object@normalised_counts))(
@@ -149,14 +143,16 @@ print_regressions <- function (deggs_object,
   on.exit(par(op))
 }
 
-#' Boxplots of single nodes across subgroups
+#' Boxplots of expression levels of single nodes (genes) per subgroups
 #'
 #' This function is used only by `View_interactive_subnetwork`
 #'
-#' @param gene gene name  (must be contained in rownames(normalised_counts))
-#' @param cex.lab lab dimension
+#' @param gene gene name  (must be contained in `rownames(normalised_counts)`)
+#' @param deggs_object  an object of class `deggs` generated from
+#' `generate_subnetworks`
 #' @return the gene boxplot
-node_boxplot <- function(gene, deggs_object) {
+node_boxplot <- function(gene,
+                         deggs_object) {
 
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
@@ -183,12 +179,12 @@ node_boxplot <- function(gene, deggs_object) {
 
 #' Interactive shiny app to visualise subnetworks
 #'
-#' Explore subnetworks and interactively select regression plots
+#' Explore subnetworks and interactively select regression and box plots
 #'
-#' @param Deggs_object an object of class Deggs generated from
+#' @param deggs_object an object of class `deggs` generated from
 #' `generate_subnetworks`
 #' @importFrom magrittr %>%
-#' @return a network plot with selectable nodes and links
+#' @return a shiny interface showing networks with selectable nodes and links
 #' @export
 View_interactive_subnetwork <- function(deggs_object){
 

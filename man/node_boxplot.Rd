@@ -2,14 +2,15 @@
 % Please edit documentation in R/DEGGs_printing_functions.R
 \name{node_boxplot}
 \alias{node_boxplot}
-\title{Boxplots of single nodes across subgroups}
+\title{Boxplots of expression levels of single nodes (genes) per subgroups}
 \usage{
 node_boxplot(gene, deggs_object)
 }
 \arguments{
-\item{gene}{gene name  (must be contained in rownames(normalised_counts))}
+\item{gene}{gene name  (must be contained in \code{rownames(normalised_counts)})}
 
-\item{cex.lab}{lab dimension}
+\item{deggs_object}{an object of class \code{deggs} generated from
+\code{generate_subnetworks}}
 }
 \value{
 the gene boxplot

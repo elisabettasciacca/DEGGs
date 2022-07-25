@@ -18,39 +18,52 @@ generate_subnetworks(
 )
 }
 \arguments{
-\item{normalised_counts}{a data frame containig the normalised sequencing
-count data. Sample IDs must be in columns and gene/miRNA/TFs in rows.
+\item{normalised_counts}{a data frame containing normalised counts from an
+high throughput sequencing experiment.
+Sample IDs must be in columns and gene/miRNA/TFs in rows.
 Objects of class \code{matrix} are not allowed.}
 
-\item{metadata}{a data frame of sample information matching the sample IDs in
-\code{normalised_counts}}
+\item{metadata}{a data frame of sample data with rownames matching the
+sample IDs in \code{normalised_counts} colnames}
 
-\item{subgroup_variable}{column name in \code{metadata} which contains the
-subgroup definition for each sample in \code{normalised_counts}}
+\item{subgroup_variable}{column name in \code{metadata} that contains the
+subgroup identifier for each sample in \code{normalised_counts}}
 
-\item{regression_method}{whether to use robust linear modeling for the
-interaction p values. Options are 'rlm' (default) or 'lm'}
+\item{regression_method}{whether to use robust linear modelling to calculate
+link p values. Options are 'rlm' (default) or 'lm'.}
 
 \item{subgroups}{optional character vector indicating which subgroups
-are used for comparison. If not specified, all subgroups in
-\code{subgroup_variable} will be considered}
+must be used for comparison. If not specified, all subgroups in
+\code{subgroup_variable} will be used.}
 
-\item{entrezIDs}{Logical whether gene ids in \code{normalised_counts} are in
-entrez id (TRUE) or gene symbols (FALSE). Default FALSE}
+\item{network}{network of biological interactions provided by the user. The
+network must be provided in the form of a table of class data.frame with two
+columns named "from" and "to".
+If NULL (default) a network of 10,537 molecular interactions obtained from
+KEGG, mirTARbase, miRecords and transmiR will be used.
+This has been obtained via the \code{exportgraph} function of the MITHrIL tool
+(Alaimo et al., 2016).}
 
-\item{convert_to_gene_symbols}{Logical to be used when using entrez ids.
-If TRUE (default), the output will show gene symbols}
+\item{entrezIDs}{logical (default FALSE) used to define whether gene ids in
+\code{normalised_counts} are entrez ids (TRUE) or gene symbols (FALSE).}
 
-\item{use_qvalues}{Whether to use Storey's q values for multiple test
-adjustment. If FALSE (default), unadjusted p values will be used.}
+\item{convert_to_gene_symbols}{logical to be used when using entrez ids.
+If TRUE (default), the output will show gene symbols.}
 
-\item{cores}{Number of cores to use.}
+\item{use_qvalues}{whether to use Storey's q values for multiple test
+adjustment. If FALSE (default), unadjusted p values will be used and shown
+in the output.}
+
+\item{cores}{number of cores to use.}
 }
 \value{
-a Deggs object with subgroup specific networks incorporating pvalues
-for each interaction
+a \code{deggs} object containing subgroup specific networks incorporating
+p values or adjusted p values for each link.
 }
 \description{
 Generate subgroup specific gene-gene interaction networks with interaction
-pvalues
+p values
+}
+\seealso{
+\code{\linkS4class{deggs}}.
 }
