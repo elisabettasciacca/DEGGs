@@ -105,12 +105,12 @@ print_regressions <- function (deggs_object,
                                              newdata = data.frame(x = new_x),
                                              interval = 'confidence'))
 
-  all_interactions <- do.call(rbind, subnetworks_object@subnetworks)
+  all_interactions <- do.call(rbind, deggs_object@subnetworks)
   Padj_interaction <- all_interactions[which(all_interactions$from == gene_A &
                                             all_interactions$to == gene_B),
                                        sig_var]
 
-  sig_interaction <- ifelse(subnetworks_object@use_qvalues,
+  sig_interaction <- ifelse(deggs_object@use_qvalues,
                             Padj_interaction,
                             p_interaction)
 
@@ -188,7 +188,7 @@ node_boxplot <- function(gene,
 #' @export
 View_interactive_subnetwork <- function(deggs_object){
 
-  use_qvalues <- subnetworks_object@use_qvalues
+  use_qvalues <- deggs_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   ################# server ########################
@@ -307,10 +307,10 @@ View_interactive_subnetwork <- function(deggs_object){
 
           print_regressions(gene_A = edges[input$current_edges_selection, "from"],
                             gene_B = edges[input$current_edges_selection, "to"],
-                            deggs_object = subnetworks_object)
+                            deggs_object = deggs_object)
             } else {
               req(input$current_nodes_selection != "")
-              node_boxplot(input$current_nodes_selection, deggs_object = subnetworks_object)
+              node_boxplot(input$current_nodes_selection, deggs_object = deggs_object)
             }
       # ,silent = TRUE)
     })
