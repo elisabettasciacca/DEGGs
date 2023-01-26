@@ -14,6 +14,19 @@
 
 <title>DEGGs vignette</title>
 
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -35,26 +48,28 @@
   }
 </style>
 <style type="text/css" data-origin="pandoc">
-a.sourceLine { display: inline-block; line-height: 1.25; }
-a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
-a.sourceLine:empty { height: 1.2em; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
-code.sourceCode { white-space: pre; position: relative; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-code.sourceCode { white-space: pre-wrap; }
-a.sourceLine { text-indent: -1em; padding-left: 1em; }
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
-pre.numberSource a.sourceLine
-  { position: relative; left: -4em; }
-pre.numberSource a.sourceLine::before
-  { content: attr(title);
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
     position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; pointer-events: all; display: inline-block;
+    border: none; display: inline-block;
     -webkit-touch-callout: none; -webkit-user-select: none;
     -khtml-user-select: none; -moz-user-select: none;
     -ms-user-select: none; user-select: none;
@@ -63,9 +78,9 @@ pre.numberSource a.sourceLine::before
   }
 pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-  {  }
+  {   }
 @media screen {
-a.sourceLine::before { text-decoration: underline; }
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
@@ -326,41 +341,57 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
   margin-right: auto;
 }
 </style>
-<p>The DEGGs package enables the exploration of differential gene-gene correlations across phenotipical groups.<br />
-This vignette uses breast cancer RNA-seq data from The Cancer Genome Atlas program (<a href="https://portal.gdc.cancer.gov/projects/TCGA-BRCA">TCGA</a>) to show the functionalities of the package.<br />
-In this example we are going to compare two different breast cancer subgroups: HER2-positive and luminal A.</p>
+<p>The DEGGs package enables the exploration of differential gene-gene
+correlations across phenotipical groups.<br />
+This vignette uses breast cancer RNA-seq data from The Cancer Genome
+Atlas program (<a href="https://portal.gdc.cancer.gov/projects/TCGA-BRCA">TCGA</a>) to
+show the functionalities of the package.<br />
+In this example we are going to compare two different breast cancer
+subgroups: HER2-positive and luminal A.</p>
 <div id="installing-from-github" class="section level2">
 <h2>Installing from Github</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1">devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;elisabettasciacca/DEGGs&quot;</span>, <span class="dt">build_vignettes =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;elisabettasciacca/DEGGs&quot;</span>, <span class="at">build_vignettes =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 </div>
 <div id="overview" class="section level1">
 <h1>Overview</h1>
 <p>Let’s start by loading the package and sample data</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">library</span>(DEGGs)</a>
-<a class="sourceLine" id="cb2-2" title="2"><span class="kw">data</span>(<span class="st">&quot;BRCA_metadata&quot;</span>)</a>
-<a class="sourceLine" id="cb2-3" title="3"><span class="kw">data</span>(<span class="st">&quot;BRCA_normCounts&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DEGGs)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;BRCA_metadata&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;BRCA_normCounts&quot;</span>)</span></code></pre></div>
 <p>Always make sure clinical and counts data are aligned</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">identical</span>(<span class="kw">colnames</span>(BRCA_normCounts), <span class="kw">rownames</span>(BRCA_metadata))</a>
-<a class="sourceLine" id="cb3-2" title="2"><span class="co">#&gt; [1] TRUE</span></a></code></pre></div>
-<p>We can then proceed generating specific gene-gene networks associated with the two subgroups.<br />
-We will specify the groups of interest using the <code>subgroups</code> parameter. If not specified, all breast cancer subtypes will be compared (when more than two groups are compared, a one-way ANOVA is used in place of the robust linear model).<br />
-The provided count matrix uses entrez IDs, therefore we will set <code>entrezIDs = TRUE</code> and <code>convert_to_gene_symbols = TRUE</code> to visualise the matching gene symbols in our output.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">subnetworks_object &lt;-<span class="st"> </span><span class="kw">generate_subnetworks</span>(<span class="dt">normalised_counts =</span> BRCA_normCounts, </a>
-<a class="sourceLine" id="cb4-2" title="2">                                           <span class="dt">metadata =</span> BRCA_metadata,</a>
-<a class="sourceLine" id="cb4-3" title="3">                                           <span class="dt">subgroup_variable =</span> <span class="st">&quot;SUBTYPE&quot;</span>,</a>
-<a class="sourceLine" id="cb4-4" title="4">                                           <span class="dt">subgroups =</span> <span class="kw">c</span>(<span class="st">&quot;BRCA_Her2&quot;</span>,</a>
-<a class="sourceLine" id="cb4-5" title="5">                                                         <span class="st">&quot;BRCA_LumA&quot;</span>),</a>
-<a class="sourceLine" id="cb4-6" title="6">                                           <span class="dt">entrezIDs =</span> <span class="ot">TRUE</span>,</a>
-<a class="sourceLine" id="cb4-7" title="7">                                           <span class="dt">convert_to_gene_symbols =</span> <span class="ot">TRUE</span>) </a>
-<a class="sourceLine" id="cb4-8" title="8"><span class="co">#&gt; 130 genes had no matching gene symbol.</span></a>
-<a class="sourceLine" id="cb4-9" title="9"><span class="co">#&gt; SUBTYPE was converted to factor.</span></a>
-<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; Percolation analysis: genes whose expression is below the 70th percentile are removed from networks.</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">colnames</span>(BRCA_normCounts), <span class="fu">rownames</span>(BRCA_metadata))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>We can then proceed generating specific gene-gene networks associated
+with the two subgroups.<br />
+We will specify the groups of interest using the <code>subgroups</code>
+parameter. If not specified, all breast cancer subtypes will be compared
+(when more than two groups are compared, a one-way ANOVA is used in
+place of the robust linear model).<br />
+The provided count matrix uses entrez IDs, therefore we will set
+<code>entrezIDs = TRUE</code> and
+<code>convert_to_gene_symbols = TRUE</code> to visualise the matching
+gene symbols in our output.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>subnetworks_object <span class="ot">&lt;-</span> <span class="fu">generate_subnetworks</span>(<span class="at">normalised_counts =</span> BRCA_normCounts, </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">metadata =</span> BRCA_metadata,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">subgroup_variable =</span> <span class="st">&quot;SUBTYPE&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">subgroups =</span> <span class="fu">c</span>(<span class="st">&quot;BRCA_Her2&quot;</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                                                         <span class="st">&quot;BRCA_LumA&quot;</span>),</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">entrezIDs =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">convert_to_gene_symbols =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                                           <span class="at">cores =</span> <span class="dv">2</span>) </span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; SUBTYPE was converted to factor.</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Percolation analysis: genes whose expression is below the 70th percentile are removed from networks.</span></span></code></pre></div>
 </div>
 <div id="visualisation" class="section level1">
 <h1>Visualisation</h1>
-<p>To inspect the network in a shiny-style, interactive way, we use the <code>View_interactive_subnetwork</code> function that only requires an object of class <code>DEGGs</code> generated from <code>the generate_subnetworks</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">View_interactive_subnetwork</span>(subnetworks_object)</a></code></pre></div>
-<p>This will let you navigate the networks associated to each subgroup of patients (1), filter by gene-gene link significance (2), and search for specific genes (3).</p>
+<p>To inspect the network in a shiny-style, interactive way, we use the
+<code>View_interactive_subnetwork</code> function that only requires an
+object of class <code>DEGGs</code> generated from
+<code>the generate_subnetworks</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View_interactive_subnetwork</span>(subnetworks_object)</span></code></pre></div>
+<p>This will let you navigate the networks associated to each subgroup
+of patients (1), filter by gene-gene link significance (2), and search
+for specific genes (3).</p>
 <p>
  
 </p>
@@ -368,7 +399,8 @@ The provided count matrix uses entrez IDs, therefore we will set <code>entrezIDs
 <p>
  
 </p>
-When clicking on a link, the related gene-gene regression plot will appear on the left.
+When clicking on a link, the related gene-gene regression plot will
+appear on the left.
 <p>
  
 </p>
@@ -376,7 +408,8 @@ When clicking on a link, the related gene-gene regression plot will appear on th
 <p>
  
 </p>
-When clicking on a node, a box plot will visualise the expression of the single node across the subgroups.
+When clicking on a node, a box plot will visualise the expression of the
+single node across the subgroups.
 <p>
  
 </p>
@@ -386,24 +419,32 @@ When clicking on a node, a box plot will visualise the expression of the single 
 </p>
 <div id="list-significant-gene-gene-interactions" class="section level2">
 <h2>List significant gene-gene interactions</h2>
-<p>To obtain a table of all the significant gene-gene pairs found across groups, you will need to use the <code>extract_sig_deggs</code> with <code>subnetworks_object</code> as input:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">head</span>(<span class="kw">extract_sig_deggs</span>(subnetworks_object))</a>
-<a class="sourceLine" id="cb6-2" title="2"><span class="co">#&gt;                            from    to     p.value</span></a>
-<a class="sourceLine" id="cb6-3" title="3"><span class="co">#&gt; BRCA_Her2.PABPC4L-CNOT8 PABPC4L CNOT8 0.024154993</span></a>
-<a class="sourceLine" id="cb6-4" title="4"><span class="co">#&gt; BRCA_Her2.PABPC5-CNOT8   PABPC5 CNOT8 0.033705845</span></a>
-<a class="sourceLine" id="cb6-5" title="5"><span class="co">#&gt; BRCA_Her2.FGF9-INSR        FGF9  INSR 0.031035682</span></a>
-<a class="sourceLine" id="cb6-6" title="6"><span class="co">#&gt; BRCA_Her2.PDGFC-KDR       PDGFC   KDR 0.027533542</span></a>
-<a class="sourceLine" id="cb6-7" title="7"><span class="co">#&gt; BRCA_Her2.FGF17-KDR       FGF17   KDR 0.001037766</span></a>
-<a class="sourceLine" id="cb6-8" title="8"><span class="co">#&gt; BRCA_Her2.FGFR2-SHC3      FGFR2  SHC3 0.018567199</span></a></code></pre></div>
-<p>The listed genes can be used as features of machine learning models (see <em>Sciacca, E., Surace, A.E.A., Alaimo, S. et al. Network analysis of synovial RNA sequencing identifies gene-gene interactions predictive of response in rheumatoid arthritis. Arthritis Res Ther 24, 166 (2022). <a href="https://doi.org/10.1186/s13075-022-02803-z" class="uri">https://doi.org/10.1186/s13075-022-02803-z</a></em>).</p>
+<p>To obtain a table of all the significant gene-gene pairs found across
+groups, you will need to use the <code>extract_sig_deggs</code> with
+<code>subnetworks_object</code> as input:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">extract_sig_deggs</span>(subnetworks_object))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                         from   to      p.value</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.FGF9-INSR     FGF9 INSR 0.0310356817</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.PDGFC-KDR    PDGFC  KDR 0.0275335424</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.INSR-SHC3     INSR SHC3 0.0421828500</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.KDR-SHC3       KDR SHC3 0.0342953611</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.CDK6-RBL2     CDK6 RBL2 0.0105175951</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.CDKN2C-CDK6 CDKN2C CDK6 0.0003186264</span></span></code></pre></div>
+<p>The listed genes can be used as features of machine learning models
+(see <em>Sciacca, E., Surace, A.E.A., Alaimo, S. et al. Network analysis
+of synovial RNA sequencing identifies gene-gene interactions predictive
+of response in rheumatoid arthritis. Arthritis Res Ther 24, 166 (2022).
+<a href="https://doi.org/10.1186/s13075-022-02803-z" class="uri">https://doi.org/10.1186/s13075-022-02803-z</a></em>).</p>
 </div>
 <div id="single-regression-plots" class="section level2">
 <h2>Single regression plots</h2>
-<p>To plot the differential regression fits for a single gene-gene interaction the <code>print_regressions</code> function can be used by specifying the names of the two genes:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">print_regressions</span>(<span class="dt">gene_A =</span> <span class="st">&quot;NOTCH2&quot;</span>, <span class="dt">gene_B =</span> <span class="st">&quot;DTX4&quot;</span>,</a>
-<a class="sourceLine" id="cb7-2" title="2">                  <span class="dt">deggs_object =</span> subnetworks_object,</a>
-<a class="sourceLine" id="cb7-3" title="3">                  <span class="dt">legend_position =</span> <span class="st">&quot;bottomright&quot;</span>)</a></code></pre></div>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>To plot the differential regression fits for a single gene-gene
+interaction the <code>print_regressions</code> function can be used by
+specifying the names of the two genes:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print_regressions</span>(<span class="at">gene_A =</span> <span class="st">&quot;NOTCH2&quot;</span>, <span class="at">gene_B =</span> <span class="st">&quot;DTX4&quot;</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                  <span class="at">deggs_object =</span> subnetworks_object,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">legend_position =</span> <span class="st">&quot;bottomright&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 </div>
 </div>
 

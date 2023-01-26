@@ -15,7 +15,7 @@
 #' are used for comparison.
 #' @slot use_qvalues logical. Indicates whether p values are adjusted via
 #' Storey's q value method
-setClass("deggs", slots = list(
+methods::setClass("deggs", slots = list(
                   subnetworks       = "list",
                   normalised_counts = "data.frame",
                   metadata          = "data.frame",
@@ -60,6 +60,7 @@ setClass("deggs", slots = list(
 #' adjustment. If FALSE (default), unadjusted p values will be used and shown
 #' in the output.
 #' @param cores number of cores to use.
+#' @importFrom rlang .data
 #' @return a `deggs` object containing subgroup specific networks incorporating
 #' p values or adjusted p values for each link. 
 #' @seealso [`deggs-class`].
@@ -78,8 +79,7 @@ generate_subnetworks <- function(normalised_counts,
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   if(is.data.frame(normalised_counts) == FALSE){
-    message(paste0("normalised_counts is not a dataframe"))
-    return
+    stop(paste0("normalised_counts is not a dataframe"))
   }
 
   if(!subgroup_variable %in% colnames(metadata)){
@@ -97,42 +97,44 @@ generate_subnetworks <- function(normalised_counts,
                                 !is.na(normalised_counts$genesymbol))
     rownames(normalised_counts) <- normalised_counts$genesymbol
     normalised_counts$genesymbol <- NULL
-
-    message(paste0(num_entrez_rows - nrow(normalised_counts),
-                   " genes had no matching gene symbol."))
-
+    
+    if(num_entrez_rows - nrow(normalised_counts) > 0) (
+      message(paste0(num_entrez_rows - nrow(normalised_counts),
+                     " genes had no matching gene symbol."))
+    )
+    
     # main network (gene symbols)
     if(is.null(network))(
       edges <- metapathway_gene_symbols %>%
-        dplyr::filter(from %in% rownames(normalised_counts)) %>%
-        dplyr::filter(to   %in% rownames(normalised_counts))
+        dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(.data$to   %in% rownames(normalised_counts))
     ) else (
       edges <- network %>%
-        dplyr::filter(from %in% rownames(normalised_counts)) %>%
-        dplyr::filter(to   %in% rownames(normalised_counts))
+        dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(.data$to   %in% rownames(normalised_counts))
     )
   } else if (entrezIDs == FALSE){
     # main network (gene symbols)
     if(is.null(network))(
     edges <- metapathway_gene_symbols %>%
-      dplyr::filter(from %in% rownames(normalised_counts)) %>%
-      dplyr::filter(to   %in% rownames(normalised_counts))
+      dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+      dplyr::filter(.data$to   %in% rownames(normalised_counts))
     ) else (
       edges <- network %>%
-        dplyr::filter(from %in% rownames(normalised_counts)) %>%
-        dplyr::filter(to   %in% rownames(normalised_counts))
+        dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(.data$to   %in% rownames(normalised_counts))
     )
 
   } else {
     # main network (entrezIDs)
     if(is.null(network))(
     edges <- metapathway_entrez_IDs %>%
-      dplyr::filter(from %in% rownames(normalised_counts)) %>%
-      dplyr::filter(to   %in% rownames(normalised_counts))
+      dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+      dplyr::filter(.data$to   %in% rownames(normalised_counts))
     ) else (
       edges <- network %>%
-        dplyr::filter(from %in% rownames(normalised_counts)) %>%
-        dplyr::filter(to   %in% rownames(normalised_counts))
+        dplyr::filter(.data$from %in% rownames(normalised_counts)) %>%
+        dplyr::filter(.data$to   %in% rownames(normalised_counts))
     )
 
   }
@@ -154,7 +156,7 @@ generate_subnetworks <- function(normalised_counts,
     subgroups <- levels(metadata[, subgroup_variable])
   }
 
-  combinations <- combn(subgroups, m = 2) %>%
+  combinations <- utils::combn(subgroups, m = 2) %>%
     as.data.frame()
 
   # create subgroups (duplicating count data for each subgroup)
@@ -169,7 +171,7 @@ generate_subnetworks <- function(normalised_counts,
   })
   names(subgroups_df_list) <- subgroups
 
-  # calculate pvalues list (with parallelisation)
+  # calculate p values list (with parallelisation)
   percentile_vector <- seq(0.7, 0.98, by = 0.05)
   sig_edges_count <- 0
 
@@ -237,14 +239,14 @@ generate_subnetworks <- function(normalised_counts,
                  "th percentile are removed from networks."))
   final_networks <- pvalues_list[[as.character(names(best_percentile))]]
 
-  degg <- new("deggs",
-              subnetworks = final_networks,
-              normalised_counts = normalised_counts,
-              metadata = metadata,
-              subgroup_variable = subgroup_variable,
-              regression_method = regression_method,
-              subgroups = subgroups,
-              use_qvalues = use_qvalues)
+  degg <- methods::new("deggs",
+                   subnetworks = final_networks,
+                   normalised_counts = normalised_counts,
+                   metadata = metadata,
+                   subgroup_variable = subgroup_variable,
+                   regression_method = regression_method,
+                   subgroups = subgroups,
+                   use_qvalues = use_qvalues)
 
   return(degg)
 }
@@ -321,6 +323,7 @@ tidy_metadata <- function(subgroups,
 #' class data.frame with two columns: "from" and "to". 
 #' @param sig_edges_count number of significant edges (p < 0.05)
 #' @importFrom magrittr %>%
+#' @importFrom rlang .data
 #' @return The list of float numbers of the significant pvalues
 #' for a specific percentile
 calc_pvalues_percentile <- function(normalised_counts,
@@ -350,10 +353,10 @@ calc_pvalues_percentile <- function(normalised_counts,
 
   # format to string vectors to allow easy detection of overlapping edges
   networks_to_string <- lapply(subgroups_df_list, function(subgroup_df){
-    if(class(subgroup_df) != "character") {
+    if(!is.character(subgroup_df)) {
       subgroupEdges <- edges %>%
-        dplyr::filter(from %in% names(subgroup_df)) %>%
-        dplyr::filter(to   %in% names(subgroup_df))
+        dplyr::filter(.data$from %in% names(subgroup_df)) %>%
+        dplyr::filter(.data$to   %in% names(subgroup_df))
       network_to_string <- do.call(paste, subgroupEdges)
     } else {
       network_to_string <- user_message
@@ -385,7 +388,7 @@ calc_pvalues_percentile <- function(normalised_counts,
 
   # count tot edges left
   tot_edges <- unlist(lapply(subgroups_network_list, function(subgroup_network){
-    if(class(subgroup_network) != "character")(
+    if(!is.character(subgroup_network))(
       nrow(subgroup_network)
     )
   })) %>%
@@ -435,6 +438,7 @@ calc_pvalues_percentile <- function(normalised_counts,
 #'
 #' @inheritParams calc_pvalues_percentile
 #' @param subgroup_network network table for a specific subgroup
+#' @importFrom methods is
 #' @return a list of p values
 calc_pvalues_network <- function(normalised_counts,
                                  metadata,
@@ -444,7 +448,7 @@ calc_pvalues_network <- function(normalised_counts,
                                  regression_method = 'rlm',
                                  subgroup_network){
 
-  if(class(subgroup_network) != "character"){
+  if(!is.character(subgroup_network)){
     if(nrow(subgroup_network) > 0){
       # prepare data
       df_list <- mapply(function(gene_B, gene_A){
@@ -487,7 +491,7 @@ calc_pvalues_network <- function(normalised_counts,
       p_values <- "No specific links for this subgroup."
     }
 
-  if(class(p_values) == "list"){
+  if(is.list(p_values)){
     # make a data frame with all values
     p_values <- as.data.frame(do.call("rbind", p_values))
     p_values$from <- as.character(p_values$from)
@@ -496,7 +500,7 @@ calc_pvalues_network <- function(normalised_counts,
     if(sig_var == "q.value"){
       # adding Storey's q values
       q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
-      if (class(q.values) == "try-error") {
+      if (is(q.values, "try-error")) {
         if(nrow(p_values > 1))(
           q.values <-  qvalue::qvalue(p = p_values[, "p.value"], pi0 = 1)$qvalues
         ) else (
@@ -507,7 +511,7 @@ calc_pvalues_network <- function(normalised_counts,
     }
   }
 
-  if(class(p_values) != "character"){
+  if(!is.character(p_values)){
     rownames(p_values) <- paste(p_values$from, p_values$to, sep = "-")
   }
 

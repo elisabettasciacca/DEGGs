@@ -7,6 +7,9 @@
 #' @param legend_position position of the legend in the plot. It can be
 #' specified by keyword or in any way which is accepted by `xy.coords` (defalut
 #' "topright")
+#' @importFrom methods is
+#' @importFrom grDevices adjustcolor
+#' @importFrom graphics abline axis boxplot legend mtext par points polygon text
 #' @return base graphics plot showing gene-gene robust regressions for each 
 #' subgroup. The p value of the interaction term of
 #' gene A ~ gene B \* subgroup is reported on top.
@@ -26,7 +29,7 @@ print_regressions <- function (deggs_object,
   regression_method <- deggs_object@regression_method
 
   # integrity checks
-  if(class(deggs_object) != "deggs"){
+  if(!is(deggs_object, "deggs")){
     stop("deggs_object must be of class deggs")
   }
 
@@ -34,7 +37,7 @@ print_regressions <- function (deggs_object,
     stop("gene_A is not in rownames(normalised_counts)")
   )
   if(!gene_B %in% rownames(deggs_object@normalised_counts))(
-    stop("gene_A is not in rownames(normalised_counts)")
+    stop("gene_B is not in rownames(normalised_counts)")
   )
 
   if(is.null(subgroups)) {
@@ -105,12 +108,12 @@ print_regressions <- function (deggs_object,
                                              newdata = data.frame(x = new_x),
                                              interval = 'confidence'))
 
-  all_interactions <- do.call(rbind, subnetworks_object@subnetworks)
+  all_interactions <- do.call(rbind, deggs_object@subnetworks)
   Padj_interaction <- all_interactions[which(all_interactions$from == gene_A &
                                             all_interactions$to == gene_B),
                                        sig_var]
 
-  sig_interaction <- ifelse(subnetworks_object@use_qvalues,
+  sig_interaction <- ifelse(deggs_object@use_qvalues,
                             Padj_interaction,
                             p_interaction)
 
@@ -183,19 +186,23 @@ node_boxplot <- function(gene,
 #'
 #' @param deggs_object an object of class `deggs` generated from
 #' `generate_subnetworks`
+#' @import igraph
+#' @import knitr
+#' @import rmarkdown
 #' @importFrom magrittr %>%
+#' @importFrom rlang .data
 #' @return a shiny interface showing networks with selectable nodes and links
 #' @export
 View_interactive_subnetwork <- function(deggs_object){
 
-  use_qvalues <- subnetworks_object@use_qvalues
+  use_qvalues <- deggs_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   ################# server ########################
   server <- function(input, output, session) {
 
-    outVar = reactive({
-      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame")(
+    outVar = shiny::reactive({
+      if(is.data.frame(deggs_object@subnetworks[[input$subgroup]]))(
         deggs_object@subnetworks[[input$subgroup]]
       ) else (
         data.frame("from" = NA, "to" = NA, "p.value" = 1, "q.value" = 1)
@@ -204,8 +211,8 @@ View_interactive_subnetwork <- function(deggs_object){
     nodes_selection <- shiny::reactiveValues(current_node = NULL)
 
     # Set up reactive table
-    edges <- reactive({
-      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+    edges <- shiny::reactive({
+      if(is.data.frame(deggs_object@subnetworks[[input$subgroup]])){
         edges <- deggs_object@subnetworks[[input$subgroup]]
         edges <- edges[edges[, sig_var] < input$slider, ]
         edges$id <- rownames(edges)
@@ -217,15 +224,15 @@ View_interactive_subnetwork <- function(deggs_object){
         )
         if (!is.null(nodes_selection$current_node))(
           DT::datatable(edges %>%
-                          dplyr::filter(from %in% nodes_selection$current_node |
-                                          to %in% nodes_selection$current_node),
+                          dplyr::filter(.data$from %in% nodes_selection$current_node |
+                                        .data$to %in% nodes_selection$current_node),
                         options = list(lengthChange = FALSE, scrollX = T,
                                        columnDefs = list(list(visible=FALSE,
                                                               targets=c(3:4)))),
                         rownames = TRUE)
         ) else if (length(input$current_edges_selection) != 0)(
           DT::datatable(edges %>%
-                          dplyr::filter(id %in% input$current_edges_selection),
+                          dplyr::filter(.data$id %in% input$current_edges_selection),
                         options = list(lengthChange = FALSE, scrollX = T,
                                        columnDefs = list(list(visible=FALSE,
                                                               targets=c(3:4)))),
@@ -236,7 +243,7 @@ View_interactive_subnetwork <- function(deggs_object){
 
     # Network
     output$network <- visNetwork::renderVisNetwork({
-      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+      if(is.data.frame(deggs_object@subnetworks[[input$subgroup]])){
         edges <- deggs_object@subnetworks[[input$subgroup]]
         edges$id <- rownames(edges)
 
@@ -307,19 +314,20 @@ View_interactive_subnetwork <- function(deggs_object){
 
           print_regressions(gene_A = edges[input$current_edges_selection, "from"],
                             gene_B = edges[input$current_edges_selection, "to"],
-                            deggs_object = subnetworks_object)
+                            deggs_object = deggs_object)
             } else {
-              req(input$current_nodes_selection != "")
-              node_boxplot(input$current_nodes_selection, deggs_object = subnetworks_object)
+              shiny::req(input$current_nodes_selection != "")
+              node_boxplot(input$current_nodes_selection, 
+                           deggs_object = deggs_object)
             }
       # ,silent = TRUE)
     })
 
     # Highligh the searched node in the network
-    observe({
-      if(class(deggs_object@subnetworks[[input$subgroup]]) == "data.frame"){
+    shiny::observe({
+      if(is.data.frame(deggs_object@subnetworks[[input$subgroup]])){
         if(input$searchButton > 0){
-          isolate({
+          shiny::isolate({
             edges <- deggs_object@subnetworks[[input$subgroup]]
             nodes <- data.frame("id"    = unique(c(edges$from, edges$to)),
                                 "label" = unique(c(edges$from, edges$to)),
@@ -334,8 +342,8 @@ View_interactive_subnetwork <- function(deggs_object){
       }
     })
 
-    observe({
-      updateSliderInput(session, inputId = "slider",
+    shiny::observe({
+      shiny::updateSliderInput(session, inputId = "slider",
                         max = max(round(outVar()[, sig_var], digits = 3))
       )})
 

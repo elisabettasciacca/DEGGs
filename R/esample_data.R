@@ -18,16 +18,4 @@
 #' and 105 columns representing samples.
 "BRCA_normCounts"
 
-#' A `generate_subnetworks` sample output
-#'
-#' A DEGGs object with subgroup specific networks incorporating p-values
-#' for each interaction
-#'
-#' @format A data frame with 105 rows and 1 variable (IDs are in rownames):
-#' \describe{
-#'   \item{subnetworks}{List of subgroup networks + number of total links
-#'   reaching significance (< 0.05) in their associated interaction p-value. }
-#'   \item{metadata}{The input sample data.}
-#'   \item{normalised_counts}{The input expression data.}
-#' }
-"subnetworks_object"
+

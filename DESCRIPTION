@@ -28,6 +28,7 @@ Description: The DEGGs package enables the exploration of differential gene-gene
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
+LazyDataCompression: gzip
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 biocViews:
@@ -39,15 +40,17 @@ Imports:
    AnnotationDbi,
    dplyr,
    DT,
-   ellipsis (>= 0.3.2),
+   igraph,
    knitr,
    MASS,
    magrittr,
+   methods,
    org.Hs.eg.db,
    parallel,
    pbapply,
    pbmcapply,
    qvalue,
+   rlang,
    rmarkdown,
    sfsmisc,
    shiny,
