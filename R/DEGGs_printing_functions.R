@@ -217,20 +217,21 @@ View_interactive_subnetwork <- function(deggs_object){
         edges <- edges[edges[, sig_var] < input$slider, ]
         edges$id <- rownames(edges)
 
-        if(use_qvalues) (
+        if(use_qvalues) {
           edges$`q value` <- formatC(edges$q.value, format = "e", digits = 3)
-        ) else (
+          edges <- edges[order(edges$q.value),]
+        } else {
           edges$`p value` <- formatC(edges$p.value, format = "e", digits = 3)
-        )
-        if (!is.null(nodes_selection$current_node))(
-          DT::datatable(edges %>%
-                          dplyr::filter(.data$from %in% nodes_selection$current_node |
-                                        .data$to %in% nodes_selection$current_node),
+          edges <- edges[order(edges$p.value),]
+          }
+        
+        if (length(input$current_edges_selection) == 0)(
+          DT::datatable(edges,
                         options = list(lengthChange = FALSE, scrollX = T,
                                        columnDefs = list(list(visible=FALSE,
                                                               targets=c(3:4)))),
                         rownames = TRUE)
-        ) else if (length(input$current_edges_selection) != 0)(
+        ) else (
           DT::datatable(edges %>%
                           dplyr::filter(.data$id %in% input$current_edges_selection),
                         options = list(lengthChange = FALSE, scrollX = T,
@@ -238,7 +239,7 @@ View_interactive_subnetwork <- function(deggs_object){
                                                               targets=c(3:4)))),
                         rownames = TRUE)
         )
-      }
+        }
       })
 
     # Network
