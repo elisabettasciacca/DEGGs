@@ -24,10 +24,10 @@ knitr::opts_chunk$set(
 ```
 
 The DEGGs package enables the exploration of differential gene-gene correlations 
-across phenotipical groups.  
+in different phenotipical groups.  
 This vignette uses breast cancer RNA-seq data from 
 The Cancer Genome Atlas program ([TCGA](https://portal.gdc.cancer.gov/projects/TCGA-BRCA)) to show the functionalities of the package.  
-In this example we are going to compare two different breast cancer subgroups: 
+In this example we will compare two different breast cancer subgroups: 
 HER2-positive and luminal A. 
 
 ## Installing from Github
@@ -51,7 +51,7 @@ Always make sure clinical and counts data are aligned
 identical(colnames(BRCA_normCounts), rownames(BRCA_metadata))
 ```
 
-We can then proceed generating specific gene-gene networks associated with the two subgroups.   
+We can then proceed generating specific gene networks associated with the two subgroups.   
 We will specify the groups of interest using the `subgroups` parameter.
 If not specified, all breast cancer subtypes will be compared (when more than two
 groups are compared, a one-way ANOVA is used in place of the robust linear model).  
@@ -99,7 +99,7 @@ node across the subgroups.
   
   
 ## List significant gene-gene interactions  
-To obtain a table of all the significant gene-gene pairs found across groups,
+To get a table listing all the significant gene-gene pairs found in all subgroups,
 you will need to use the `extract_sig_deggs` with `subnetworks_object` as input: 
 ```{r}
 head(extract_sig_deggs(subnetworks_object))

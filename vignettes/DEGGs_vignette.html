@@ -120,13 +120,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   for (var i = 0; i < sheets.length; i++) {
     if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
     try { var rules = sheets[i].cssRules; } catch (e) { continue; }
-    for (var j = 0; j < rules.length; j++) {
+    var j = 0;
+    while (j < rules.length) {
       var rule = rules[j];
       // check if there is a div.sourceCode rule
-      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -342,12 +349,12 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 }
 </style>
 <p>The DEGGs package enables the exploration of differential gene-gene
-correlations across phenotipical groups.<br />
+correlations in different phenotipical groups.<br />
 This vignette uses breast cancer RNA-seq data from The Cancer Genome
 Atlas program (<a href="https://portal.gdc.cancer.gov/projects/TCGA-BRCA">TCGA</a>) to
 show the functionalities of the package.<br />
-In this example we are going to compare two different breast cancer
-subgroups: HER2-positive and luminal A.</p>
+In this example we will compare two different breast cancer subgroups:
+HER2-positive and luminal A.</p>
 <div id="installing-from-github" class="section level2">
 <h2>Installing from Github</h2>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;elisabettasciacca/DEGGs&quot;</span>, <span class="at">build_vignettes =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
@@ -361,8 +368,8 @@ subgroups: HER2-positive and luminal A.</p>
 <p>Always make sure clinical and counts data are aligned</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">colnames</span>(BRCA_normCounts), <span class="fu">rownames</span>(BRCA_metadata))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>We can then proceed generating specific gene-gene networks associated
-with the two subgroups.<br />
+<p>We can then proceed generating specific gene networks associated with
+the two subgroups.<br />
 We will specify the groups of interest using the <code>subgroups</code>
 parameter. If not specified, all breast cancer subtypes will be compared
 (when more than two groups are compared, a one-way ANOVA is used in
@@ -419,9 +426,9 @@ single node across the subgroups.
 </p>
 <div id="list-significant-gene-gene-interactions" class="section level2">
 <h2>List significant gene-gene interactions</h2>
-<p>To obtain a table of all the significant gene-gene pairs found across
-groups, you will need to use the <code>extract_sig_deggs</code> with
-<code>subnetworks_object</code> as input:</p>
+<p>To get a table listing all the significant gene-gene pairs found in
+all subgroups, you will need to use the <code>extract_sig_deggs</code>
+with <code>subnetworks_object</code> as input:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">extract_sig_deggs</span>(subnetworks_object))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                         from   to      p.value</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; BRCA_Her2.FGF9-INSR     FGF9 INSR 0.0310356817</span></span>
