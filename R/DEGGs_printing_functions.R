@@ -180,6 +180,7 @@ node_boxplot <- function(gene,
   par(op)
 }
 
+
 #' Interactive shiny app to visualise subnetworks
 #'
 #' Explore subnetworks and interactively select regression and box plots
@@ -193,8 +194,8 @@ node_boxplot <- function(gene,
 #' @importFrom rlang .data
 #' @return a shiny interface showing networks with selectable nodes and links
 #' @export
-View_interactive_subnetwork <- function(deggs_object){
-
+View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL){
+  
   use_qvalues <- deggs_object@use_qvalues
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
@@ -395,5 +396,5 @@ View_interactive_subnetwork <- function(deggs_object){
               });
     });"))
    )
-  shiny::shinyApp(ui = ui, server = server)
+  shiny::shinyApp(ui = ui, server = server, options = list(host = host, port = port))
 }
