@@ -120,3 +120,47 @@ print_regressions(gene_A = "NOTCH2", gene_B = "DTX4",
 ```
   
   
+## Run View_interactive_subnetwork in a non-blocking way
+
+Shiny typically locks the R console until the user presses escape to close the 
+shiny app. However this behaviour can be bypassed by calling the app in
+background as explained by Will Landau in his ([post](https://wlandau.github.io/posts/2020-12-18-non-blocking-app/)).  
+To do so, the shiny function must be wrapped in a second function and run at a 
+given IP address and TCP port. 
+
+```{r, eval=FALSE}
+run_app <- function(host = "127.0.0.1", port = 49152, subnetworks_object) (
+  print(View_interactive_subnetwork(subnetworks_object, host = host, port = port))
+)
+
+process <- callr::r_bg(func = run_app, 
+                       args = list(host = "127.0.0.1", 
+                                   port = 49152,
+                                   subnetworks_object = subnetworks_object), 
+                       supervise = TRUE)
+```                       
+  
+To know when the app is up and running the pingr package can be used:  
+   
+```{r, eval=FALSE}  
+while(!pingr::is_up(destination = "127.0.0.1", port = 49152)) {
+  if (!process$is_alive()) stop(process$read_all_error())
+  Sys.sleep(0.01)
+}
+```
+   
+After the loop completes, the app can be open in a web browser:  
+  
+```{r, eval=FALSE}  
+browseURL("http://127.0.0.1:49152")
+```  
+  
+  
+Once the user completes his analysis, the app can be closed:     
+  
+```{r, eval=FALSE}
+process$kill()
+```
+
+
+
