@@ -34,3 +34,21 @@ Print differential regression fits for a single gene-gene interaction through th
 `print_regressions(gene_A = "NOTCH2", gene_B = "DTX4",
                   deggs_object = subnetworks_object,
                   legend_position = "bottomright")`
+                  
+## Citation
+
+DEGGs was developed by Elisabetta Sciacca and supported by the bioinformatics team at 
+[Experimental Medicine & Rheumatology department](https://www.qmul.ac.uk/whri/emr/) 
+and [Centre for Translational Bioinformatics](https://www.qmul.ac.uk/c4tb/) (Queen Mary University London), in joint collaboration with the 
+[Department of Clinical and Experimental Medicine at University of Catania](https://www.medclin.unict.it/en). 
+
+
+If you use this package please cite as: 
+
+```{r}
+citation("DEGGs")
+```
+
+or:
+
+> Sciacca, Elisabetta, et al. "DEGGs: an R package with shiny app for the identification of differentially expressed gene–gene interactions in high-throughput sequencing data." Bioinformatics 39.4 (2023): btad192.
