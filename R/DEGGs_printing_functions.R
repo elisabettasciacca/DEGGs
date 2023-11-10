@@ -24,7 +24,7 @@ print_regressions <- function (deggs_object,
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
   metadata <- deggs_object@metadata
   normalised_counts <- deggs_object@normalised_counts
-  subgroups = deggs_object@subgroups
+  subgroups <- deggs_object@subgroups
   subgroup_variable <- deggs_object@subgroup_variable
   regression_method <- deggs_object@regression_method
 
@@ -97,9 +97,9 @@ print_regressions <- function (deggs_object,
   # Plot
   prefix <- ifelse(use_qvalues, "Padj", "P")
   col <- viridis::viridis(n = subgroup_length)
-  x_adj <- (max(df[,1], na.rm = T) - min(df[,1], na.rm = T)) * 0.05
-  new_x <- seq(min(df[,1], na.rm = T) - x_adj,
-               max(df[,1], na.rm=T) + x_adj,
+  x_adj <- (max(df[,1], na.rm = TRUE) - min(df[,1], na.rm = TRUE)) * 0.05
+  new_x <- seq(min(df[,1], na.rm = TRUE) - x_adj,
+               max(df[,1], na.rm=TRUE) + x_adj,
                length.out=100)
 
   # prediction of the fitted model
@@ -125,7 +125,7 @@ print_regressions <- function (deggs_object,
 
   cols <- col[df[, subgroup_variable]]
   pch <- c(16 : (16 + subgroup_length -1))[df[, subgroup_variable]]
-  for(i in 1:subgroup_length) {
+  for(i in seq_along(subgroups)) {
     # plot confidence intervals
     polygon(c(rev(new_x), new_x), c(rev(preds[[i]][ ,3]), preds[[i]][ ,2]),
             col = adjustcolor(col[i], alpha.f = 0.15), border = NA)
@@ -187,6 +187,10 @@ node_boxplot <- function(gene,
 #'
 #' @param deggs_object an object of class `deggs` generated from
 #' `generate_subnetworks`
+#' @param host local IP address, to be used only to run the function in 
+#' non-blocking mode (see vignette)
+#' @param port TCP port, to be used only to run the function in 
+#' non-blocking mode (see vignette)
 #' @import igraph
 #' @import knitr
 #' @import rmarkdown
@@ -228,16 +232,16 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL){
         
         if (length(input$current_edges_selection) == 0)(
           DT::datatable(edges,
-                        options = list(lengthChange = FALSE, scrollX = T,
-                                       columnDefs = list(list(visible=FALSE,
-                                                              targets=c(3:4)))),
+                        options = list(lengthChange = FALSE, scrollX = TRUE,
+                                       columnDefs = list(list(visible = FALSE,
+                                                              targets = c(3:4)))),
                         rownames = TRUE)
         ) else (
           DT::datatable(edges %>%
                           dplyr::filter(.data$id %in% input$current_edges_selection),
-                        options = list(lengthChange = FALSE, scrollX = T,
-                                       columnDefs = list(list(visible=FALSE,
-                                                              targets=c(3:4)))),
+                        options = list(lengthChange = FALSE, scrollX = TRUE,
+                                       columnDefs = list(list(visible = FALSE,
+                                                              targets = c(3:4)))),
                         rownames = TRUE)
         )
         }

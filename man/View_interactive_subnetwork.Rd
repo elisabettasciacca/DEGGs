@@ -4,11 +4,17 @@
 \alias{View_interactive_subnetwork}
 \title{Interactive shiny app to visualise subnetworks}
 \usage{
-View_interactive_subnetwork(deggs_object)
+View_interactive_subnetwork(deggs_object, host = NULL, port = NULL)
 }
 \arguments{
 \item{deggs_object}{an object of class \code{deggs} generated from
 \code{generate_subnetworks}}
+
+\item{host}{local IP address, to be used only to run the function in
+non-blocking mode (see vignette)}
+
+\item{port}{TCP port, to be used only to run the function in
+non-blocking mode (see vignette)}
 }
 \value{
 a shiny interface showing networks with selectable nodes and links

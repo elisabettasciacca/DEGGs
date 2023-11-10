@@ -79,7 +79,7 @@ generate_subnetworks <- function(normalised_counts,
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
   if(is.data.frame(normalised_counts) == FALSE){
-    stop(paste0("normalised_counts is not a dataframe"))
+    stop("normalised_counts is not a dataframe")
   }
 
   if(!subgroup_variable %in% colnames(metadata)){
@@ -88,19 +88,19 @@ generate_subnetworks <- function(normalised_counts,
 
   if(entrezIDs == TRUE && convert_to_gene_symbols == TRUE){
     num_entrez_rows <- nrow(normalised_counts)
-    normalised_counts$genesymbol <- suppressMessages(
-      AnnotationDbi::mapIds(x = org.Hs.eg.db::org.Hs.eg.db,
-                            keys = rownames(normalised_counts),
-                            keytype = 'ENTREZID',
-                            column = 'SYMBOL'))
+    normalised_counts$genesymbol <- AnnotationDbi::mapIds(
+      x = org.Hs.eg.db::org.Hs.eg.db,
+      keys = rownames(normalised_counts),
+      keytype = 'ENTREZID',
+      column = 'SYMBOL')
     normalised_counts <- subset(normalised_counts,
                                 !is.na(normalised_counts$genesymbol))
     rownames(normalised_counts) <- normalised_counts$genesymbol
     normalised_counts$genesymbol <- NULL
     
     if(num_entrez_rows - nrow(normalised_counts) > 0) (
-      message(paste0(num_entrez_rows - nrow(normalised_counts),
-                     " genes had no matching gene symbol."))
+      message(num_entrez_rows - nrow(normalised_counts),
+              " genes had no matching gene symbol.")
     )
     
     # main network (gene symbols)
@@ -234,9 +234,9 @@ generate_subnetworks <- function(normalised_counts,
   if(length(best_percentile) > 1){
     best_percentile <- best_percentile[1]
   }
-  message(paste0("Percolation analysis: genes whose expression is below the ",
-                 as.numeric(names(best_percentile)) * 100,
-                 "th percentile are removed from networks."))
+  message("Percolation analysis: genes whose expression is below the ",
+          as.numeric(names(best_percentile)) * 100,
+          "th percentile are removed from networks.")
   final_networks <- pvalues_list[[as.character(names(best_percentile))]]
 
   degg <- methods::new("deggs",
@@ -279,17 +279,16 @@ tidy_metadata <- function(subgroups,
   # if subgroup_variable is not a factor, convert to factor
   if(!is.factor(metadata[, subgroup_variable])){
     metadata[, subgroup_variable] <- as.factor(metadata[, subgroup_variable])
-    message(paste0(subgroup_variable, " was converted to factor."))
+    message(subgroup_variable, " was converted to factor.")
   }
 
   # remove subgroups with less than five observations
   # (regression would not be reliable enough)
   tbl <- table(metadata[, subgroup_variable])
   if (length(names(tbl)[tbl < 5]) > 0) {
-    message(paste0("The ", names(tbl)[tbl < 5],
-                   " subgroup did not contain enough samples
-                   (less than five observations). ",
-                   "This subgroup will be removed.\n"))
+    message("The ", names(tbl)[tbl < 5],
+    " subgroup did not contain enough samples (less than five observations). ",
+    "This subgroup will be removed.\n")
     metadata <- subset(metadata, metadata[, subgroup_variable]
                        %in% names(tbl)[tbl > 5])
   }
@@ -299,8 +298,8 @@ tidy_metadata <- function(subgroups,
   if(NAs_number > 0) {
     metadata <- metadata[which(!is.na(metadata[, subgroup_variable])),]
     metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
-    message(paste0(subgroup_variable, " column contained NAs. ",
-                   NAs_number, " samples were removed."))
+    message(subgroup_variable, " column contained NAs. ", NAs_number,
+            " samples were removed.")
   }
 
   return(metadata)
@@ -456,7 +455,7 @@ calc_pvalues_network <- function(normalised_counts,
                           t(normalised_counts[gene_B, ]),
                           metadata[, subgroup_variable],
                           check.names = FALSE))
-      }, gene_A = subgroup_network$from, gene_B = subgroup_network$to, SIMPLIFY = F)
+      }, gene_A = subgroup_network$from, gene_B = subgroup_network$to, SIMPLIFY = FALSE)
 
       # calculate regressions with interaction term
       p_values <- lapply(df_list, function(df){
