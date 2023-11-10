@@ -17,5 +17,3 @@
 #' @format A data frame with 19737 rows representing normalised gene counts
 #' and 105 columns representing samples.
 "BRCA_normCounts"
-
-

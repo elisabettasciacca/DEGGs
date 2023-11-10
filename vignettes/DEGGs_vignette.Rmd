@@ -62,14 +62,18 @@ and `convert_to_gene_symbols = TRUE` to visualise the matching gene symbols in o
 output. 
 
 ```{r}
-subnetworks_object <- generate_subnetworks(normalised_counts = BRCA_normCounts, 
-                                           metadata = BRCA_metadata,
-                                           subgroup_variable = "SUBTYPE",
-                                           subgroups = c("BRCA_Her2",
-                                                         "BRCA_LumA"),
-                                           entrezIDs = TRUE,
-                                           convert_to_gene_symbols = TRUE,
-                                           cores = 2) 
+subnetworks_object <- generate_subnetworks(
+  normalised_counts = BRCA_normCounts,
+  metadata = BRCA_metadata,
+  subgroup_variable = "SUBTYPE",
+  subgroups = c(
+    "BRCA_Her2",
+    "BRCA_LumA"
+  ),
+  entrezIDs = TRUE,
+  convert_to_gene_symbols = TRUE,
+  cores = 2
+)
 ```
   
 # Visualisation
@@ -116,9 +120,11 @@ To plot the differential regression fits for a single gene-gene interaction
 the `print_regressions` function can be used by specifying the names of the two genes:
   
 ```{r, fig.width = 6.5, fig.height = 4.5}
-print_regressions(gene_A = "NOTCH2", gene_B = "DTX4",
-                  deggs_object = subnetworks_object,
-                  legend_position = "bottomright")
+print_regressions(
+  gene_A = "NOTCH2", gene_B = "DTX4",
+  deggs_object = subnetworks_object,
+  legend_position = "bottomright"
+)
 ```
   
 ## Run View_interactive_subnetwork in a non-blocking way
@@ -134,17 +140,21 @@ run_app <- function(host = "127.0.0.1", port = 49152, deggs_object = subnetworks
   print(View_interactive_subnetwork(subnetworks_object, host = host, port = port))
 )
 
-process <- callr::r_bg(func = run_app, 
-                       args = list(host = "127.0.0.1", 
-                                   port = 49152,
-                                   subnetworks_object = subnetworks_object), 
-                       supervise = TRUE)
+process <- callr::r_bg(
+  func = run_app,
+  args = list(
+    host = "127.0.0.1",
+    port = 49152,
+    subnetworks_object = subnetworks_object
+  ),
+  supervise = TRUE
+)
 ```                      
   
 To know when the app is up and running the pingr package can be used:  
    
 ```{r, eval=FALSE}  
-while(!pingr::is_up(destination = "127.0.0.1", port = 49152)) {
+while (!pingr::is_up(destination = "127.0.0.1", port = 49152)) {
   if (!process$is_alive()) stop(process$read_all_error())
   Sys.sleep(0.01)
 }

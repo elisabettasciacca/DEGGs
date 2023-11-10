@@ -4,26 +4,30 @@ library("dplyr")
 library("stringr")
 
 # import and refactor of normalised_counts dataset
-normalised_counts <- read.table(file = 'data_RNA_Seq_v2_mRNA_median_Zscores_normals.txt',
-                                na.strings = c("", "NA"),
-                                sep = '\t', header = TRUE)[,-1]
-rownames(normalised_counts) <- normalised_counts[,1]
-normalised_counts[,1] <- NULL
+normalised_counts <- read.table(
+  file = 'data_RNA_Seq_v2_mRNA_median_Zscores_normals.txt',
+  na.strings = c("", "NA"),
+  sep = '\t', header = TRUE
+)[, -1]
+rownames(normalised_counts) <- normalised_counts[, 1]
+normalised_counts[, 1] <- NULL
 
 # renaming normalised_counts column names
 normalised_counts <- normalised_counts %>%
   rename_all(funs(str_replace_all(., '\\.11', '') %>%
-                    str_replace_all(., '\\.', '-')))
+    str_replace_all(., '\\.', '-')))
 
 # removing null genes
 normalised_counts <- na.omit(normalised_counts)
 
 # import and refactor of metadata dataset
-metadata <- read.table(file = 'data_clinical_patient.tsv',
-                       na.strings = c("", "NA"), sep = '\t',
-                       header = TRUE)[,-c(3:38)]
-rownames(metadata) <- metadata[,1]
-metadata[,1] <- NULL
+metadata <- read.table(
+  file = 'data_clinical_patient.tsv',
+  na.strings = c("", "NA"), sep = '\t',
+  header = TRUE
+)[, -c(3:38)]
+rownames(metadata) <- metadata[, 1]
+metadata[, 1] <- NULL
 
 # removing null samples
 print(nrow(na.omit(metadata)))
