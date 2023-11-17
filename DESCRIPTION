@@ -31,7 +31,7 @@ Description: The DEGGs package enables the exploration of differential gene-gene
     interactively explored through a shiny user-friendly interface.
     For each gene–gene link, differential statistical significance and differential
     regression plots are provided through robust linear regression with interaction term.
-License: GPL (>= 3)
+License: GPL-3
 Encoding: UTF-8
 LazyData: false
 LazyDataCompression: gzip

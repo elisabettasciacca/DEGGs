@@ -131,8 +131,6 @@ print_regressions <- function(deggs_object,
   )
   op <- par(xpd = FALSE)
 
-  cols <- col[df[, subgroup_variable]]
-  pch <- c(16:(16 + subgroup_length - 1))[df[, subgroup_variable]]
   for (i in seq_along(subgroups)) {
     # plot confidence intervals
     polygon(c(rev(new_x), new_x), c(rev(preds[[i]][, 3]), preds[[i]][, 2]),
@@ -141,8 +139,13 @@ print_regressions <- function(deggs_object,
 
     # plot regression lines
     abline(fit[[i]], col = col[i], lwd = 1.5)
-    row <- points(df[df[, subgroup_variable] == subgroups[i], 1],
-      df[df[, subgroup_variable] == subgroups[i], 2],
+    
+    # plot dots 
+    cols <- col[df[df[, subgroup_variable] == subgroups[i], 3]]
+    pch <- c(16:(16 + subgroup_length - 1))[df[df[, subgroup_variable] ==
+                                                 subgroups[i], 3]]
+    row <- points(df[df[, subgroup_variable] == subgroups[i], 1], # x coordinates from gene_A 
+      df[df[, subgroup_variable] == subgroups[i], 2], # y coordinates from gene_B 
       cex = 1.5,
       pch = pch, col = adjustcolor(cols, alpha.f = 0.7)
     )
