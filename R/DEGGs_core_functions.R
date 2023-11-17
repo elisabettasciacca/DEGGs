@@ -557,19 +557,14 @@ calc_pvalues_network <- function(normalised_counts,
 #' @export
 #' @seealso [`deggs-class`].
 extract_sig_deggs <- function(deggs_object) {
-  use_qvalues <- deggs_object@use_qvalues
-  sig_var <- ifelse(use_qvalues, "q.value", "p.value")
+  sig_var <- ifelse(deggs_object@use_qvalues, "q.value", "p.value")
 
-  counts <- deggs_object@normalised_counts
-  metadata <- deggs_object@metadata
-  subgroup_variable <- deggs_object@subgroup_variable
-  model <- deggs_object@regression_method
-  # extracting subnetworks (we just need to exclude sig_pvalues_count from the list)
+  # extracting subnetworks (we just exclude sig_pvalues_count from the list)
   condition <- lapply(deggs_object@subnetworks, is.list)
   subnetworks_list <- deggs_object@subnetworks[unlist(condition)]
 
-  # exrtact all significant gene pairs (from any subgroup),
-  # these will be tested for prediction
+  # extract all significant gene pairs (from all subgroups),
+  # these can be used for prediction
   sig.edges <- lapply(subnetworks_list, function(subnetwork) {
     subnetwork <- subnetwork[which(subnetwork[, sig_var] < 0.05), ]
   })
