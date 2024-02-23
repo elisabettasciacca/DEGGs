@@ -18,6 +18,7 @@
 methods::setClass("deggs", slots = list(
   subnetworks       = "list",
   normalised_counts = "data.frame",
+  #normalised_counts = "list",
   metadata          = "data.frame",
   subgroup_variable = "character",
   regression_method = "character",
@@ -261,6 +262,7 @@ generate_subnetworks <- function(normalised_counts,
   degg <- methods::new("deggs",
     subnetworks = final_networks,
     normalised_counts = normalised_counts,
+    #normalised_counts = list(normalised_counts),
     metadata = metadata,
     subgroup_variable = subgroup_variable,
     regression_method = regression_method,
@@ -575,3 +577,109 @@ extract_sig_deggs <- function(deggs_object) {
   })
   sig.edges <- do.call(rbind, sig.edges)
 }
+
+
+generate_subnetworks_omics <- function(normalised_counts_list,
+                                       metadata,
+                                       omics,
+                                       subgroup_variable,
+                                       regression_method = 'rlm',
+                                       subgroups = NULL,
+                                       network = NULL,
+                                       entrezIDs = FALSE,
+                                       convert_to_gene_symbols = TRUE,
+                                       use_qvalues = FALSE,
+                                       cores = parallel::detectCores() / 2) {
+  
+  deggs <- lapply(normalised_counts_list, function(normalised_counts) {
+    subnetworks_object <- generate_subnetworks(normalised_counts = normalised_counts,   metadata = metadata,   subgroup_variable = subgroup_variable,   subgroups = subgroups,   entrezIDs = entrezIDs,   convert_to_gene_symbols = convert_to_gene_symbols,   cores = cores)
+    return(subnetworks_object)
+  })
+  
+  
+  if(length(omics) == length(normalised_counts_list)){
+    names(deggs) <- omics
+  }
+  
+  lapply(seq_along(deggs), function(count_degg) {
+    degg <- deggs[[count_degg]]
+    lapply(seq_along(degg@subnetworks), function(count_sub) {
+      subnetwork <- degg@subnetworks[[count_sub]]
+      if(is.list(subnetwork)){
+        print(names(deggs))
+        deggs[[names(deggs)[count_degg]]]@subnetworks[[names(degg@subnetworks)[count_sub]]]$omic <<- names(deggs)[count_degg]
+      }
+    })
+  })
+  
+  final_degg <- NULL
+  subnetwork_analyzed <- NULL
+  final_subnetworks <- list()
+  
+  deggs_names <- names(deggs)
+  lapply(seq_along(deggs), function(count_degg) {
+    #print(final_subnetworks)
+    #cat("COUNT_DEGG: ", count_degg)
+    degg <- deggs[[count_degg]]
+    #cat("Analizzo degg: ", deggs_names[count_degg], "\n")
+    
+    count_sub <- 1
+    merged_subnetwork <- NULL
+    lapply(seq_along(degg@subnetworks), function(count_sub) {
+      subnetwork <- degg@subnetworks[[count_sub]]
+      if(is.list(subnetwork) && !(names(degg@subnetworks)[count_sub] %in% subnetwork_analyzed)){
+        #cat("Analizzo subnetwork: ", names(degg@subnetworks)[count_sub], "\n")
+        
+        merged_subnetwork <- subnetwork
+        #print(merged_subnetwork)
+        
+        lapply(seq_along(deggs), function(count_degg_cpm) {
+          if(names(deggs)[count_degg_cpm] != names(deggs)[count_degg]){
+            if (!(names(deggs)[count_degg_cpm] %in% subnetwork_analyzed)) {
+              #cat("La confronto con degg: ", names(deggs)[count_degg_cpm], "\n")
+              lapply(seq_along(deggs[[names(deggs)[count_degg_cpm]]]@subnetworks), function(count_sub_cpm) {
+                subnetwork_cmp <- deggs[[names(deggs)[count_degg_cpm]]]@subnetworks[count_sub_cpm]
+                if(is.list(subnetwork_cmp)){ 
+                  if(names(degg@subnetworks)[count_sub_cpm] == names(degg@subnetworks)[count_sub]){
+                    #cat("La confronto con subnetwork: ", names(degg@subnetworks)[count_sub_cpm], "\n")
+                    merged_subnetwork <<- rbind(merged_subnetwork, deggs[[names(deggs)[count_degg_cpm]]]@subnetworks[[names(degg@subnetworks)[count_sub_cpm]]])
+                    #cat("Unisco il dataframe di ", names(deggs)[count_degg_cpm], " - ", names(degg@subnetworks)[count_sub_cpm], "\n\n")
+                    #print(merged_subnetwork)
+                    #cat("\n")
+                  }else{
+                    #cat("Skip il confronto con la subnetwork: ", names(degg@subnetworks)[count_sub_cpm], " perchè non uguale\n\n")
+                  }
+                }
+              })
+            }
+          }
+        })
+        
+        subnetwork_analyzed <- append(subnetwork_analyzed, names(degg@subnetworks)[count_sub])
+        final_subnetworks[[names(degg@subnetworks)[count_sub]]] <<- merged_subnetwork
+        
+        print(final_subnetworks[[names(degg@subnetworks)[count_sub]]])
+      }else{
+        #cat("Skip della subnetwork ", names(degg@subnetworks)[count_sub], "perchè gia presente in subnetwork_analyzed o perchè la subnetwork è vuota\n\n")
+      }
+    })
+  })
+  
+  
+  normalised_counts <- normalised_counts_list[[1]]
+  
+  final_degg <- methods::new("deggs",
+                             subnetworks = final_subnetworks,
+                             normalised_counts = normalised_counts_list,
+                             #normalised_counts = normalised_counts,
+                             metadata = deggs[[1]]@metadata,
+                             subgroup_variable = subgroup_variable,
+                             regression_method = regression_method,
+                             subgroups = subgroups,
+                             use_qvalues = use_qvalues
+  )
+  
+  return (final_degg)
+  
+}
+

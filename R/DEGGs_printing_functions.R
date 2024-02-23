@@ -232,7 +232,7 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
       if (is.data.frame(deggs_object@subnetworks[[input$subgroup]])) (
         deggs_object@subnetworks[[input$subgroup]]
       ) else (
-        data.frame("from" = NA, "to" = NA, "p.value" = 1, "q.value" = 1)
+        data.frame("from" = NA, "to" = NA, "p.value" = 1, "q.value" = 1, "omic" = NA)
       )
     })
     nodes_selection <- shiny::reactiveValues(current_node = NULL)
@@ -243,6 +243,10 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
         edges <- deggs_object@subnetworks[[input$subgroup]]
         edges <- edges[edges[, sig_var] < input$slider, ]
         edges$id <- rownames(edges)
+        
+        if(!is.null(edges$omic)){
+          edges$omics <- edges$omic
+        }
 
         if (use_qvalues) {
           edges$`q value` <- formatC(edges$q.value, format = "e", digits = 3)
@@ -251,6 +255,7 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
           edges$`p value` <- formatC(edges$p.value, format = "e", digits = 3)
           edges <- edges[order(edges$p.value), ]
         }
+        
 
         if (length(input$current_edges_selection) == 0) (
           DT::datatable(edges,
@@ -299,9 +304,28 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
           (max(edges[, sig_var]) - min(edges[, sig_var]))
         # invert values (and multiply by 4 to increase width)
         edges$width <- (1 - edges$width) * 4
+        
+        colors_labels <- c("royalblue", "gray")
+        arrow_labels <- c("not significant", "significant")
 
         # Set up edges color
-        edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
+        if(!is.null(edges$omic)){
+          colors <- c("red", "green", "blue", "orange", "purple", "yellow", "black", "brown", "pink")
+          omics_unique <- unique(edges$omic)
+          colors_omics <- rep("red", length(edges$omic))
+          
+          for (i in 1:length(omics_unique)) {
+            colors_omics[edges$omic == omics_unique[i]] <- colors[i]
+          }
+          
+          colors_labels <- unique(colors_omics)
+          arrow_labels <- omics_unique
+          
+          edges$color <- ifelse(edges[, sig_var] < 0.05, colors_omics, "gray")
+          
+        }else{
+          edges$color <- ifelse(edges[, sig_var] < 0.05, "royalblue", "gray")
+        }
 
         # Slider
         edges <- edges[edges[, sig_var] < input$slider, ]
@@ -327,13 +351,16 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
             useGroups = FALSE,
             position = 'right',
             addEdges = data.frame(
-              color = c("gray", "royalblue"),
-              label = c("not significant", "significant"),
+              #color = colors_labels,
+              #label = arrow_labels,
+              color = c("red", "blue", "gray"),
+              label = c("ciao", "okca", "well"),
               font.align = "top",
-              font.size = 9
+              font.size = 12
             ),
             stepY = 50, width = 0.15,
-            zoom = FALSE
+            zoom = FALSE,
+            fixed = TRUE 
           ) %>%
           visNetwork::visOptions(highlightNearest = TRUE) %>%
           visNetwork::visInteraction(hover = TRUE, tooltipDelay = 20) %>%
@@ -348,7 +375,7 @@ View_interactive_subnetwork <- function(deggs_object, host = NULL, port = NULL) 
         visNetwork::visNetwork(nodes, edges, main = network.title)
       }
     })
-
+    
 
     # Table
     output$tbl <- DT::renderDT({
