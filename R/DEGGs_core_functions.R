@@ -239,7 +239,7 @@ generate_subnetworks <- function(normalised_counts,
   # extract the network filtered on the best threshold percentile
   # (highest number of statistically significant interactions)
   sig_pvalues <- unlist(lapply(pvalues_list, function(networks) {
-      if (class(networks != "try-error")) (
+      if (class(networks) != "try-error") (
         networks$sig_pvalues_count
       )
     }
