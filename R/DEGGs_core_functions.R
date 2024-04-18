@@ -494,7 +494,10 @@ calc_pvalues_network <- function(normalised_counts,
           if (regression_method == "rlm") {
             # gene_B ~ gene_A * subgroup
             robustfit <- suppressWarnings(MASS::rlm(df[, 2] ~ df[, 1] * df[, 3]))
-            p_interaction <- sfsmisc::f.robftest(robustfit, var = 3)$p.value
+            p_interaction <- try(sfsmisc::f.robftest(robustfit, var = 3)$p.value)
+            if (class(p_interaction) == "try-error") (
+              p_interaction <- NA
+            )
           }
           output <- data.frame(
             from = colnames(df)[1], to = colnames(df)[2],
