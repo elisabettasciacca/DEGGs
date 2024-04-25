@@ -74,6 +74,7 @@ generate_subnetworks <- function(normalised_counts,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
                                  use_qvalues = FALSE,
+                                 show_progressBar = TRUE, 
                                  cores = parallel::detectCores() / 2) {
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
@@ -494,7 +495,8 @@ calc_pvalues_network <- function(normalised_counts,
           if (regression_method == "rlm") {
             # gene_B ~ gene_A * subgroup
             robustfit <- suppressWarnings(MASS::rlm(df[, 2] ~ df[, 1] * df[, 3]))
-            p_interaction <- try(sfsmisc::f.robftest(robustfit, var = 3)$p.value)
+            p_interaction <- try(sfsmisc::f.robftest(robustfit, var = 3)$p.value,
+                                 silent = TRUE)
             if (class(p_interaction) == "try-error") (
               p_interaction <- NA
             )
@@ -531,7 +533,8 @@ calc_pvalues_network <- function(normalised_counts,
 
     if (sig_var == "q.value") {
       # adding Storey's q values
-      q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues)
+      q.values <- try(qvalue::qvalue(p_values[, "p.value"])$qvalues,
+                      silent = TRUE)
       if (is(q.values, "try-error")) {
         if (nrow(p_values) > 1) (
           q.values <- qvalue::qvalue(p = p_values[, "p.value"], pi0 = 1)$qvalues
@@ -575,3 +578,4 @@ extract_sig_deggs <- function(deggs_object) {
   })
   sig.edges <- do.call(rbind, sig.edges)
 }
+
