@@ -148,7 +148,7 @@ generate_subnetworks <- function(normalised_counts,
 
   metadata <- tidy_metadata(
     subgroups = subgroups, metadata = metadata,
-    subgroup_variable = subgroup_variable
+    subgroup_variable = subgroup_variable, verbose = verbose
   )
 
   # align metadata and count data
@@ -334,7 +334,8 @@ generate_subnetworks <- function(normalised_counts,
 #' @return tidied and aligned metadata.
 tidy_metadata <- function(subgroups,
                           metadata,
-                          subgroup_variable) {
+                          subgroup_variable, 
+                          verbose) {
   # select specified subgroups (optional)
   if (!is.null(subgroups)) {
     metadata <- subset(metadata, metadata[, subgroup_variable] %in% subgroups)
