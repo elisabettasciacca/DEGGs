@@ -74,7 +74,8 @@ generate_subnetworks <- function(normalised_counts,
                                  entrezIDs = FALSE,
                                  convert_to_gene_symbols = TRUE,
                                  use_qvalues = FALSE,
-                                 show_progressBar = TRUE, 
+                                 show_progressBar = TRUE,
+                                 verbose = TRUE, 
                                  cores = parallel::detectCores() / 2) {
   sig_var <- ifelse(use_qvalues, "q.value", "p.value")
 
@@ -102,9 +103,9 @@ generate_subnetworks <- function(normalised_counts,
     normalised_counts$genesymbol <- NULL
 
     if (num_entrez_rows - nrow(normalised_counts) > 0) (
-      message(
-        num_entrez_rows - nrow(normalised_counts),
-        " genes had no matching gene symbol."
+      if (verbose) (
+        message(num_entrez_rows - nrow(normalised_counts),
+                " genes had no matching gene symbol.") 
       )
     )
 
@@ -198,42 +199,86 @@ generate_subnetworks <- function(normalised_counts,
     parallel::clusterEvalQ(cl, {
       library("dplyr")
     })
-    pvalues_list <- pbapply::pblapply(cl = cl, percentile_vector, function(percentile) {
-      calc_pvalues_percentile(
-        normalised_counts = normalised_counts,
-        sig_var = sig_var,
-        metadata = metadata,
-        percentile = percentile,
-        subgroups_df_list = subgroups_df_list,
-        combinations = combinations,
-        regression_method = regression_method,
-        edges = edges,
-        subgroup_variable = subgroup_variable,
-        subgroups_length = length(subgroups),
-        sig_edges_count = sig_edges_count
-      )
-    })
+    if (show_progressBar) (
+      pvalues_list <- pbmcapply::pbmclapply(
+        cl = cl, percentile_vector,
+        function(percentile) {
+          calc_pvalues_percentile(
+            normalised_counts = normalised_counts,
+            sig_var = sig_var,
+            metadata = metadata,
+            percentile = percentile,
+            subgroups_df_list = subgroups_df_list,
+            combinations = combinations,
+            regression_method = regression_method,
+            edges = edges,
+            subgroup_variable = subgroup_variable,
+            subgroups_length = length(subgroups),
+            sig_edges_count = sig_edges_count
+          )
+        })
+    ) else (
+      pvalues_list <- parallel::parLapply(
+        cl = cl, percentile_vector,
+        function(percentile) {
+          calc_pvalues_percentile(
+            normalised_counts = normalised_counts,
+            sig_var = sig_var,
+            metadata = metadata,
+            percentile = percentile,
+            subgroups_df_list = subgroups_df_list,
+            combinations = combinations,
+            regression_method = regression_method,
+            edges = edges,
+            subgroup_variable = subgroup_variable,
+            subgroups_length = length(subgroups),
+            sig_edges_count = sig_edges_count
+          )
+        })
+    )
     parallel::stopCluster(cl)
   } else {
     # Parallelisation for mac/linux
-    pvalues_list <- pbmcapply::pbmclapply(
-      mc.cores = cores, percentile_vector,
-      function(percentile) (
-        calc_pvalues_percentile(
-          normalised_counts = normalised_counts,
-          sig_var = sig_var,
-          metadata = metadata,
-          percentile = percentile,
-          subgroups_df_list = subgroups_df_list,
-          combinations = combinations,
-          regression_method = regression_method,
-          edges = edges,
-          subgroup_variable = subgroup_variable,
-          subgroups_length = length(subgroups),
-          sig_edges_count = sig_edges_count
+    if (show_progressBar) (
+      pvalues_list <- pbmcapply::pbmclapply(
+        mc.cores = cores, percentile_vector,
+        function(percentile) (
+          calc_pvalues_percentile(
+            normalised_counts = normalised_counts,
+            sig_var = sig_var,
+            metadata = metadata,
+            percentile = percentile,
+            subgroups_df_list = subgroups_df_list,
+            combinations = combinations,
+            regression_method = regression_method,
+            edges = edges,
+            subgroup_variable = subgroup_variable,
+            subgroups_length = length(subgroups),
+            sig_edges_count = sig_edges_count
+          )
+        )
+      )
+    ) else (
+      pvalues_list <- parallel::mclapply(
+        mc.cores = cores, percentile_vector,
+        function(percentile) (
+          calc_pvalues_percentile(
+            normalised_counts = normalised_counts,
+            sig_var = sig_var,
+            metadata = metadata,
+            percentile = percentile,
+            subgroups_df_list = subgroups_df_list,
+            combinations = combinations,
+            regression_method = regression_method,
+            edges = edges,
+            subgroup_variable = subgroup_variable,
+            subgroups_length = length(subgroups),
+            sig_edges_count = sig_edges_count
+          )
         )
       )
     )
+    
   }
   names(pvalues_list) <- percentile_vector
 
@@ -254,10 +299,10 @@ generate_subnetworks <- function(normalised_counts,
   if (length(best_percentile) > 1) {
     best_percentile <- best_percentile[1]
   }
-  message(
-    "Percolation analysis: genes whose expression is below the ",
-    as.numeric(names(best_percentile)) * 100,
-    "th percentile are removed from networks."
+  if (verbose) (
+    message("Percolation analysis: genes whose expression is below the ",
+            as.numeric(names(best_percentile)) * 100,
+            "th percentile are removed from networks.")
   )
   final_networks <- pvalues_list[[as.character(names(best_percentile))]]
 
@@ -301,20 +346,23 @@ tidy_metadata <- function(subgroups,
   # if subgroup_variable is not a factor, convert to factor
   if (!is.factor(metadata[, subgroup_variable])) {
     metadata[, subgroup_variable] <- as.factor(metadata[, subgroup_variable])
-    message(subgroup_variable, " was converted to factor.")
+    if (verbose) (
+      message(subgroup_variable, " was converted to factor.")
+    )
   }
 
   # remove subgroups with less than five observations
   # (regression would not be reliable enough)
   tbl <- table(metadata[, subgroup_variable])
   if (length(names(tbl)[tbl < 5]) > 0) {
-    message(
-      "The ", names(tbl)[tbl < 5],
-      " subgroup did not contain enough samples (less than five observations). ",
-      "This subgroup will be removed.\n"
+    message("The ", names(tbl)[tbl < 5],
+      " subgroup did not contain enough samples (less than five observations).",
+      "This subgroup will be removed.\n")
+    metadata <- subset(metadata, metadata[, subgroup_variable] %in% names(tbl)[tbl > 5])
+    metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
+    if (nlevels(metadata[, subgroup_variable]) < 2) (
+      stop("At least two subgroups with more than 5 observations are required.")
     )
-    metadata <- subset(metadata, metadata[, subgroup_variable]
-    %in% names(tbl)[tbl > 5])
   }
 
   # remove NAs
@@ -322,9 +370,9 @@ tidy_metadata <- function(subgroups,
   if (NAs_number > 0) {
     metadata <- metadata[which(!is.na(metadata[, subgroup_variable])), ]
     metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
-    message(
-      subgroup_variable, " column contained NAs. ", NAs_number,
-      " samples were removed."
+    if (verbose) (
+      message(subgroup_variable, " column contained NAs. ", NAs_number,
+              " samples were removed.")
     )
   }
 
