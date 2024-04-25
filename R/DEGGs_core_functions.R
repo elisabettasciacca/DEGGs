@@ -200,7 +200,7 @@ generate_subnetworks <- function(normalised_counts,
       library("dplyr")
     })
     if (show_progressBar) (
-      pvalues_list <- pbmcapply::pbmclapply(
+      pvalues_list <- pbapply::pblapply(
         cl = cl, percentile_vector,
         function(percentile) {
           calc_pvalues_percentile(
