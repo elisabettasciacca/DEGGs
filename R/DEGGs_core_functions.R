@@ -355,14 +355,14 @@ tidy_metadata <- function(subgroups,
   # remove subgroups with less than five observations
   # (regression would not be reliable enough)
   tbl <- table(metadata[, subgroup_variable])
-  if (length(names(tbl)[tbl < 5]) > 0) {
-    message("The ", names(tbl)[tbl < 5],
-      " subgroup did not contain enough samples (less than five observations).",
+  if (length(names(tbl)[tbl < 2]) > 0) {
+    message("The ", names(tbl)[tbl < 2],
+      " subgroup did not contain enough samples (less than two observations).",
       "This subgroup will be removed.\n")
-    metadata <- subset(metadata, metadata[, subgroup_variable] %in% names(tbl)[tbl > 5])
+    metadata <- subset(metadata, metadata[, subgroup_variable] %in% names(tbl)[tbl > 2])
     metadata[, subgroup_variable] <- droplevels(metadata[, subgroup_variable])
     if (nlevels(metadata[, subgroup_variable]) < 2) (
-      stop("At least two subgroups with more than 5 observations are required.")
+      stop("At least two subgroups with more than two observations are required.")
     )
   }
 
