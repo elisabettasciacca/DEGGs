@@ -1,11 +1,11 @@
-[!WARNING]
-This repository is no longer maintained. The package has been moved and significantly expanded.
-Please install the new version:
-
-- **CRAN:** `install.packages("multiDEGGs")`
-- **GitHub:** [https://github.com/elisabettasciacca/multiDEGGs](https://github.com/elisabettasciacca/multiDEGGs)
-
-This repository will not receive further updates.
+> [!WARNING]
+> This repository is no longer maintained. The package has been moved and significantly expanded.
+> Please install the new version:
+> 
+> - **CRAN:** `install.packages("multiDEGGs")`
+> - **GitHub:** [https://github.com/elisabettasciacca/multiDEGGs](https://github.com/elisabettasciacca/multiDEGGs)
+> 
+> This repository will not receive further updates.
 
 # DEGGs
 ## Differentially Expressed Gene-Gene pairs
